@@ -1,0 +1,15 @@
+{
+  "appId": "com.flowstate.arduinotest",
+  "appName": "Anchor",
+  "webDir": "www",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "backgroundColor": "#05060f",
+      "showSpinner": false
+    }
+  }
+}

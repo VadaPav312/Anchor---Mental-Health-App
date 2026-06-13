@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# secrets & local config (NEVER commit)
+.env
+GoogleService-Info*.plist
+.claude/
+
+# local data
+data/
+
+# os / editor
+.DS_Store
+*.log
+
+# iOS build artifacts (the Xcode project itself IS committed)
+ios/App/build/
+ios/App/Pods/
+ios/App/App/public/
+**/xcuserdata/
+**/DerivedData/
+*.xcuserstate

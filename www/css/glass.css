@@ -1,0 +1,394 @@
+/* ===========================================================================
+   glass.css — Anchor's liquid-glass design system.
+   Apple-inspired "liquid glass": layered translucency, specular edge
+   highlights, real backdrop blur, soft inner glow, and motion-aware sheen.
+   Everything here is design tokens + reusable glass primitives. Feature CSS
+   lives in anchor.css / weather.css.
+   =========================================================================== */
+
+/* ---- font ---- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..800&family=Fraunces:opsz,wght@9..144,400..600&display=swap');
+
+:root {
+  /* core palette — deep nocturnal base so glass reads as luminous */
+  --bg-0: #05060f;
+  --bg-1: #090b1a;
+  --bg-2: #0e1124;
+  --ink:  #f3f5ff;
+  --ink-soft: rgba(243, 245, 255, 0.72);
+  --ink-faint: rgba(243, 245, 255, 0.46);
+  --ink-ghost: rgba(243, 245, 255, 0.26);
+
+  /* accent gradient stops — the "Anchor aurora" */
+  --a1: #7c9cff;   /* periwinkle */
+  --a2: #9d7cff;   /* violet     */
+  --a3: #5fe0c8;   /* mint       */
+  --a4: #ffa9d4;   /* blossom    */
+  --a5: #ffd27a;   /* sunrise    */
+  /* RGB channels of the accents, so translucent glows/active states can follow
+     the chosen gradient via rgba(var(--a1-rgb), alpha). Set live by App.applyAccent. */
+  --a1-rgb: 124,156,255;
+  --a2-rgb: 157,124,255;
+  --a3-rgb: 95,224,200;
+  --a4-rgb: 255,169,212;
+  --a5-rgb: 255,210,122;
+
+  /* semantic */
+  --good: #5fe0c8;
+  --warn: #ffd27a;
+  --bad:  #ff8a9c;
+  --calm: #7c9cff;
+
+  /* glass surfaces */
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-bg-strong: rgba(255, 255, 255, 0.10);
+  --glass-bg-faint: rgba(255, 255, 255, 0.035);
+  --glass-stroke: rgba(255, 255, 255, 0.14);
+  --glass-stroke-soft: rgba(255, 255, 255, 0.08);
+  --glass-hi: rgba(255, 255, 255, 0.55);   /* specular top edge */
+  --glass-shadow: rgba(2, 4, 14, 0.55);
+  --blur: 22px;
+  --blur-strong: 40px;
+
+  /* geometry */
+  --r-xs: 10px;
+  --r-sm: 14px;
+  --r-md: 20px;
+  --r-lg: 28px;
+  --r-xl: 36px;
+  --r-pill: 999px;
+
+  /* spacing scale */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 22px;
+  --s6: 28px; --s7: 36px; --s8: 48px; --s9: 64px;
+
+  /* motion */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 160ms;
+  --dur: 280ms;
+  --dur-slow: 520ms;
+
+  /* safe areas (notch / home indicator) */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+
+  --tabbar-h: 76px;
+  --topbar-h: 54px;
+
+  font-size: 16px;
+}
+
+/* ---- light "daylight" theme (toggleable in settings) ---- */
+body.theme-daylight {
+  --bg-0: #eef1ff;
+  --bg-1: #e6eaff;
+  --bg-2: #dfe5ff;
+  --ink: #141a33;
+  --ink-soft: rgba(20, 26, 51, 0.74);
+  --ink-faint: rgba(20, 26, 51, 0.5);
+  --ink-ghost: rgba(20, 26, 51, 0.28);
+  --glass-bg: rgba(255, 255, 255, 0.5);
+  --glass-bg-strong: rgba(255, 255, 255, 0.66);
+  --glass-bg-faint: rgba(255, 255, 255, 0.34);
+  --glass-stroke: rgba(255, 255, 255, 0.8);
+  --glass-stroke-soft: rgba(20, 26, 51, 0.08);
+  --glass-hi: rgba(255, 255, 255, 0.95);
+  --glass-shadow: rgba(60, 70, 120, 0.18);
+}
+
+/* ---- reset ---- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  height: 100%;
+  background: var(--bg-0);
+  color: var(--ink);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; user-select: none;
+}
+body { overflow: hidden; }
+[dir="rtl"] { direction: rtl; }
+input, textarea { -webkit-user-select: text; user-select: text; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -0.02em; }
+p { margin: 0; }
+::selection { background: rgba(var(--a1-rgb), 0.4); }
+::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ---- robust inline-icon sizing ----
+   Most icons live in <span style="width:Npx;…">{svg}</span> wrappers. Inline
+   spans ignore width, so the SVG had no box. Make any span that wraps an icon a
+   sized inline-flex box and let the SVG fill it. */
+span:has(> svg) { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; line-height: 0; }
+span:has(> svg):not([style*="height"]) { aspect-ratio: 1; }
+span > svg, i > svg { width: 100%; height: 100%; }
+svg { display: block; }
+
+/* ===========================================================================
+   GLASS PRIMITIVES
+   =========================================================================== */
+
+/* base liquid-glass surface */
+.glass {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(160%);
+  border: 1px solid var(--glass-stroke-soft);
+  box-shadow:
+    0 10px 34px -12px var(--glass-shadow),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
+}
+
+/* the signature card — specular top edge + inner glow + depth */
+.glass-card {
+  position: relative;
+  border-radius: var(--r-lg);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.015)),
+    var(--glass-bg);
+  backdrop-filter: blur(var(--blur)) saturate(170%);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(170%);
+  border: 1px solid var(--glass-stroke-soft);
+  box-shadow:
+    0 18px 48px -20px var(--glass-shadow),
+    0 2px 8px -4px rgba(0,0,0,0.3),
+    inset 0 1px 0 0 rgba(255,255,255,0.12),
+    inset 0 0 0 0.5px rgba(255,255,255,0.04);
+  overflow: hidden;
+  isolation: isolate;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+/* specular highlight that runs along the top edge like light on a bevel */
+.glass-card::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(140deg,
+    var(--glass-hi) 0%, rgba(255,255,255,0.05) 22%,
+    transparent 50%, rgba(255,255,255,0.04) 78%, rgba(255,255,255,0.22) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.7;
+}
+/* (The moving "sheen" sweep was removed — animating a layer over backdrop-blur
+   caused noticeable tap lag on device. The .sheen class is now a harmless no-op,
+   replaced by a cheap press-scale on tappable cards below.) */
+.glass-card.sheen:active { transform: scale(0.985); }
+.glass-card.sheen { transition: transform var(--dur-fast) var(--ease-spring); }
+
+.glass-strong {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05)),
+    var(--glass-bg-strong);
+  backdrop-filter: blur(var(--blur-strong)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(180%);
+}
+.glass-faint { background: var(--glass-bg-faint); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+
+/* inset / well surface (for inputs, sub-panels) */
+.glass-well {
+  background: rgba(0,0,0,0.18);
+  border: 1px solid var(--glass-stroke-soft);
+  border-radius: var(--r-md);
+  box-shadow: inset 0 2px 10px -4px rgba(0,0,0,0.5), inset 0 1px 0 0 rgba(255,255,255,0.04);
+}
+body.theme-daylight .glass-well { background: rgba(255,255,255,0.4); }
+
+/* gradient text — for hero numbers and titles */
+.grad-text {
+  background: linear-gradient(120deg, var(--a1), var(--a2) 40%, var(--a3) 75%, var(--a5));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.serif { font-family: 'Fraunces', Georgia, serif; }
+
+/* ===========================================================================
+   BUTTONS
+   =========================================================================== */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
+  padding: 13px 20px;
+  border-radius: var(--r-pill);
+  font-weight: 600; font-size: 0.96rem; letter-spacing: -0.01em;
+  color: var(--ink);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-stroke);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 18px -10px var(--glass-shadow);
+  transition: transform var(--dur-fast) var(--ease-spring), filter var(--dur-fast), box-shadow var(--dur-fast);
+  -webkit-user-select: none; user-select: none;
+}
+.btn:active { transform: scale(0.96); filter: brightness(1.08); }
+.btn-primary {
+  background: linear-gradient(120deg, var(--a1), var(--a2));
+  border: 1px solid rgba(255,255,255,0.28);
+  color: #fff;
+  box-shadow: 0 10px 30px -10px rgba(var(--a2-rgb),0.6), inset 0 1px 0 rgba(255,255,255,0.4);
+}
+.btn-mint { background: linear-gradient(120deg, var(--a3), #6fb6ff); color: #04201c; }
+.btn-ghost { background: transparent; border: 1px solid var(--glass-stroke-soft); }
+.btn-block { display: flex; width: 100%; }
+.btn-lg { padding: 16px 26px; font-size: 1.05rem; }
+.btn-sm { padding: 9px 14px; font-size: 0.85rem; }
+.btn:disabled { opacity: 0.45; pointer-events: none; }
+
+.icon-btn {
+  width: 40px; height: 40px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r-pill);
+  font-size: 1.2rem; color: var(--ink-soft);
+  background: var(--glass-bg-faint);
+  border: 1px solid var(--glass-stroke-soft);
+  transition: transform var(--dur-fast) var(--ease-spring), background var(--dur-fast);
+}
+.icon-btn:active { transform: scale(0.9); background: var(--glass-bg-strong); }
+
+/* pills / chips / tags */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: var(--r-pill);
+  font-size: 0.82rem; font-weight: 500;
+  background: var(--glass-bg-faint); border: 1px solid var(--glass-stroke-soft);
+  color: var(--ink-soft);
+  transition: all var(--dur-fast) var(--ease-spring);
+}
+.chip.active, .chip[aria-pressed="true"] {
+  background: linear-gradient(120deg, rgba(var(--a1-rgb),0.4), rgba(var(--a2-rgb),0.4));
+  border-color: rgba(255,255,255,0.3); color: var(--ink);
+}
+.chip:active { transform: scale(0.94); }
+
+/* ===========================================================================
+   FORM CONTROLS (glassy)
+   =========================================================================== */
+.field { margin-bottom: var(--s4); }
+.field-label { display: block; font-size: 0.82rem; color: var(--ink-faint); margin: 0 0 7px 4px; font-weight: 500; }
+.input, .textarea, .select {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 1rem; color: var(--ink); font-family: inherit;
+  background: rgba(0,0,0,0.22);
+  border: 1px solid var(--glass-stroke-soft);
+  border-radius: var(--r-md);
+  transition: border var(--dur-fast), box-shadow var(--dur-fast), background var(--dur-fast);
+}
+body.theme-daylight .input, body.theme-daylight .textarea, body.theme-daylight .select { background: rgba(255,255,255,0.45); }
+.input::placeholder, .textarea::placeholder { color: var(--ink-ghost); }
+.input:focus, .textarea:focus, .select:focus {
+  outline: none;
+  border-color: rgba(var(--a1-rgb),0.7);
+  box-shadow: 0 0 0 4px rgba(var(--a1-rgb),0.16);
+  background: rgba(0,0,0,0.3);
+}
+.textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
+.select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23889' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
+
+/* ===== GLOBAL form-control theming =====
+   Catches EVERY input/textarea/select (not just .input), so no raw white iOS
+   field can leak through and break the dark glass look — including email,
+   number, search, and the native date/time pickers + autofill. */
+input, textarea, select { color: var(--ink); font-family: inherit; color-scheme: dark; }
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="date"]):not([type="time"]):not([type="datetime-local"]),
+textarea, select {
+  -webkit-appearance: none; appearance: none;
+  background-color: rgba(0,0,0,0.22);
+  border: 1px solid var(--glass-stroke-soft);
+  border-radius: var(--r-md);
+  font-size: 1rem;
+  outline: none;
+}
+/* native pickers: keep them functional but dark-boxed with light text */
+input[type="date"], input[type="time"], input[type="datetime-local"] {
+  background-color: rgba(0,0,0,0.22);
+  border: 1px solid var(--glass-stroke-soft);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+}
+input::placeholder, textarea::placeholder { color: var(--ink-ghost); }
+input:focus, textarea:focus, select:focus { border-color: rgba(var(--a1-rgb), 0.7); box-shadow: 0 0 0 4px rgba(var(--a1-rgb), 0.16); }
+/* kill the iOS/Safari autofill white wash */
+input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ink);
+  -webkit-box-shadow: 0 0 0 1000px rgba(0,0,0,0.30) inset;
+  caret-color: var(--ink);
+  transition: background-color 9999s ease-out;
+}
+/* daylight theme: light fields */
+body.theme-daylight input, body.theme-daylight textarea, body.theme-daylight select { color-scheme: light; }
+body.theme-daylight input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+body.theme-daylight textarea, body.theme-daylight select { background-color: rgba(255,255,255,0.6); }
+body.theme-daylight input:-webkit-autofill { -webkit-box-shadow: 0 0 0 1000px rgba(255,255,255,0.7) inset; }
+
+/* range slider — glassy track + glowing thumb */
+.range { -webkit-appearance: none; appearance: none; width: 100%; height: 30px; background: transparent; }
+.range::-webkit-slider-runnable-track { height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--a1), var(--a2)); box-shadow: inset 0 1px 3px rgba(0,0,0,0.4); }
+.range::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -9px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #d8def8); border: 1px solid rgba(255,255,255,0.7); box-shadow: 0 4px 14px -4px rgba(var(--a2-rgb),0.8), 0 0 0 6px rgba(var(--a1-rgb),0.12); }
+
+/* toggle switch */
+.switch { position: relative; width: 50px; height: 30px; flex: 0 0 auto; }
+.switch input { opacity: 0; width: 100%; height: 100%; margin: 0; }
+.switch .track { position: absolute; inset: 0; border-radius: 999px; background: rgba(255,255,255,0.12); border: 1px solid var(--glass-stroke-soft); transition: background var(--dur) var(--ease-spring); }
+.switch .knob { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(180deg, #fff, #dfe3f5); box-shadow: 0 2px 6px rgba(0,0,0,0.35); transition: transform var(--dur) var(--ease-spring); }
+.switch input:checked ~ .track { background: linear-gradient(120deg, var(--a1), var(--a2)); }
+.switch input:checked ~ .knob { transform: translateX(20px); }
+
+/* ===========================================================================
+   UTILITIES
+   =========================================================================== */
+.hidden { display: none !important; }
+.row { display: flex; align-items: center; }
+.col { display: flex; flex-direction: column; }
+.gap1 { gap: var(--s1);} .gap2 { gap: var(--s2);} .gap3 { gap: var(--s3);} .gap4 { gap: var(--s4);} .gap5 { gap: var(--s5);}
+.between { justify-content: space-between; }
+.center { align-items: center; justify-content: center; }
+.wrap { flex-wrap: wrap; }
+.grow { flex: 1 1 auto; }
+.muted { color: var(--ink-faint); }
+.soft { color: var(--ink-soft); }
+.tiny { font-size: 0.76rem; }
+.small { font-size: 0.86rem; }
+.big { font-size: 1.3rem; }
+.huge { font-size: clamp(2.6rem, 13vw, 4rem); font-weight: 700; letter-spacing: -0.04em; line-height: 0.95; }
+.b { font-weight: 600; } .bb { font-weight: 700; }
+.tac { text-align: center; } .tar { text-align: right; }
+.mt1{margin-top:var(--s1)}.mt2{margin-top:var(--s2)}.mt3{margin-top:var(--s3)}.mt4{margin-top:var(--s4)}.mt5{margin-top:var(--s5)}.mt6{margin-top:var(--s6)}
+.mb1{margin-bottom:var(--s1)}.mb2{margin-bottom:var(--s2)}.mb3{margin-bottom:var(--s3)}.mb4{margin-bottom:var(--s4)}.mb5{margin-bottom:var(--s5)}
+.full { width: 100%; }
+.cap { text-transform: capitalize; }
+.upper { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; }
+.nowrap { white-space: nowrap; }
+.clip { overflow: hidden; text-overflow: ellipsis; }
+
+/* fade/slide entrance used by view transitions.
+   NOTE: this is an OPACITY-only fade on purpose. Animating transform on a
+   container full of backdrop-filter (glass) cards makes iOS WebKit flash the
+   blurred layers gray mid-animation — most visible in Patterns. Opacity-only
+   keeps the gentle entrance with none of that recompositing glitch. */
+@keyframes rise { from { opacity: 0;} to { opacity: 1;} }
+@keyframes fade { from { opacity: 0;} to { opacity: 1;} }
+@keyframes pop { 0% { transform: scale(0.8); opacity: 0;} 60% { transform: scale(1.04);} 100% { transform: scale(1); opacity: 1;} }
+@keyframes float-y { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-8px);} }
+@keyframes spin { to { transform: rotate(360deg);} }
+@keyframes pulse-soft { 0%,100% { opacity: 0.5;} 50% { opacity: 1;} }
+.rise { animation: rise var(--dur) var(--ease-out) both; }
+.stagger > * { animation: rise var(--dur) var(--ease-out) both; }
+.stagger > *:nth-child(1){animation-delay:.02s}.stagger > *:nth-child(2){animation-delay:.06s}.stagger > *:nth-child(3){animation-delay:.10s}.stagger > *:nth-child(4){animation-delay:.14s}.stagger > *:nth-child(5){animation-delay:.18s}.stagger > *:nth-child(6){animation-delay:.22s}.stagger > *:nth-child(7){animation-delay:.26s}.stagger > *:nth-child(8){animation-delay:.30s}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.01ms !important; }
+  /* breathing guides are a deliberate, calming exception — keep them smooth */
+  .tk-orb, .breath-orb { transition-duration: 4s !important; }
+}

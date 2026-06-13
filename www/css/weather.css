@@ -1,0 +1,71 @@
+/* ===========================================================================
+   weather.css — the Emotional Weather Map. Renders emotional history as a
+   living landscape/sky. The canvas does the generative terrain; this file
+   styles the surrounding scene, day cells, legend, forecast and peel-back
+   layers panel.
+   =========================================================================== */
+
+.weather-scene {
+  position: relative; border-radius: var(--r-xl); overflow: hidden;
+  min-height: 320px;
+  border: 1px solid var(--glass-stroke);
+  box-shadow: 0 24px 60px -28px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+  background: linear-gradient(180deg, #1a2350, #0a1230 70%, #060a1e);
+}
+.weather-canvas { display: block; width: 100%; height: 100%; position: absolute; inset: 0; }
+.weather-sky { position: absolute; inset: 0; pointer-events: none; transition: background 1.2s var(--ease-in-out); }
+
+/* moving celestial bodies */
+.wx-sun { position: absolute; width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle at 40% 40%, #fff5d6, #ffcf6e 55%, transparent 72%); filter: blur(2px); box-shadow: 0 0 80px 30px rgba(255,210,122,0.4); }
+.wx-moon { position: absolute; width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle at 38% 38%, #fdfdff, #c9d2ff 60%, #8893d6); box-shadow: 0 0 60px 18px rgba(160,180,255,0.3); }
+.wx-clouds { position: absolute; inset: 0; }
+.wx-cloud { position: absolute; border-radius: 999px; background: radial-gradient(circle, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 70%, transparent); filter: blur(6px); animation: cloud-drift linear infinite; }
+@keyframes cloud-drift { from { transform: translateX(-30%);} to { transform: translateX(130%);} }
+.wx-rain { position: absolute; inset: 0; overflow: hidden; opacity: 0.6; }
+.wx-rain i { position: absolute; top: -10%; width: 1.5px; height: 16px; background: linear-gradient(transparent, rgba(180,200,255,0.7)); animation: rain-fall linear infinite; }
+@keyframes rain-fall { to { transform: translateY(360px);} }
+.wx-stars i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; animation: twinkle ease-in-out infinite; }
+@keyframes twinkle { 0%,100% { opacity: 0.2;} 50% { opacity: 1;} }
+.wx-bolt { position: absolute; inset: 0; background: rgba(255,255,255,0.0); animation: flash 6s steps(1) infinite; pointer-events: none; }
+@keyframes flash { 0%,97%,100% { background: rgba(255,255,255,0);} 98% { background: rgba(255,255,255,0.35);} }
+
+.weather-scene .scene-caption { position: absolute; left: var(--s4); bottom: var(--s4); z-index: 3; }
+.scene-caption .sc-weather { font-size: 1.3rem; font-weight: 700; text-shadow: 0 2px 12px rgba(0,0,0,0.5); }
+.scene-caption .sc-date { font-size: 0.82rem; color: rgba(255,255,255,0.7); }
+
+/* the scrollable strip of past days as little weather cells */
+.wx-strip { display: flex; gap: 8px; overflow-x: auto; padding: var(--s2) 2px var(--s3); scroll-snap-type: x proximity; }
+.wx-cell { scroll-snap-align: center; flex: 0 0 auto; width: 62px; height: 84px; border-radius: var(--r-md); display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 8px 4px; border: 1px solid var(--glass-stroke-soft); position: relative; overflow: hidden; transition: transform var(--dur-fast) var(--ease-spring); }
+.wx-cell:active { transform: scale(0.93); }
+.wx-cell.sel { border-color: rgba(255,255,255,0.5); box-shadow: 0 0 0 2px rgba(var(--a1-rgb),0.4); }
+.wx-cell .wc-emoji { font-size: 1.5rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
+.wx-cell .wc-day { font-size: 0.62rem; color: rgba(255,255,255,0.7); font-weight: 600; }
+.wx-cell .wc-fill { position: absolute; inset: 0; z-index: -1; opacity: 0.55; }
+
+/* weather "climate" gradients applied to cells & sky via data-wx attribute */
+[data-wx="sun"]   { --wx-a: #ffe39a; --wx-b: #ff9d6e; }
+[data-wx="clear"] { --wx-a: #8fc4ff; --wx-b: #6f8bff; }
+[data-wx="cloud"] { --wx-a: #9aa6c8; --wx-b: #6b7596; }
+[data-wx="fog"]   { --wx-a: #b9c0d4; --wx-b: #8f95ab; }
+[data-wx="rain"]  { --wx-a: #6f88c9; --wx-b: #46588f; }
+[data-wx="storm"] { --wx-a: #5b5f9a; --wx-b: #2e3160; }
+.wx-cell .wc-fill, .wx-fill { background: linear-gradient(180deg, var(--wx-a), var(--wx-b)); }
+
+/* peel-back layers panel */
+.peel { display: flex; flex-direction: column; gap: var(--s2); }
+.peel-layer { display: flex; gap: var(--s3); padding: var(--s3) var(--s4); border-radius: var(--r-md); background: var(--glass-bg-faint); border: 1px solid var(--glass-stroke-soft); animation: rise var(--dur) var(--ease-out) both; }
+.peel-layer .pl-ico { font-size: 1.2rem; flex: 0 0 auto; }
+.peel-layer .pl-k { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-ghost); }
+.peel-layer .pl-v { font-size: 0.95rem; color: var(--ink); line-height: 1.4; }
+
+/* forecast strip */
+.forecast { display: flex; gap: var(--s2); }
+.fc-day { flex: 1 1 0; text-align: center; padding: var(--s3) 4px; border-radius: var(--r-md); background: var(--glass-bg-faint); border: 1px solid var(--glass-stroke-soft); }
+.fc-day .fc-emoji { font-size: 1.4rem; }
+.fc-day .fc-lbl { font-size: 0.66rem; color: var(--ink-faint); margin-top: 2px; }
+.fc-day .fc-conf { font-size: 0.6rem; color: var(--ink-ghost); }
+
+/* legend */
+.wx-legend { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.wx-legend .lg { display: flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--ink-soft); }
+.wx-legend .lg b { width: 14px; height: 14px; border-radius: 5px; display: inline-block; }

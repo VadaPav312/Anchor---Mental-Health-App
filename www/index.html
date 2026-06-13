@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#05060f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Anchor — a mental-wellness companion that connects your sleep to your wellbeing and reflects you back to yourself." />
+  <title>Anchor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="css/glass.css" />
+  <link rel="stylesheet" href="css/anchor.css" />
+  <link rel="stylesheet" href="css/weather.css" />
+  <link rel="stylesheet" href="css/extras.css" />
+</head>
+<body class="theme-aurora">
+  <!-- animated ambient background — the "place" the app lives in -->
+  <div id="ambient" class="ambient" aria-hidden="true">
+    <div class="ambient-orb orb-a"></div>
+    <div class="ambient-orb orb-b"></div>
+    <div class="ambient-orb orb-c"></div>
+    <div class="ambient-grain"></div>
+  </div>
+
+  <div id="app" class="app">
+    <header class="topbar glass" id="topbar">
+      <button class="icon-btn" id="navBack" hidden aria-label="Back">‹</button>
+      <div class="brand" id="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">Anchor</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn lifeline-btn" id="lifelineBtn" aria-label="Support">♥</button>
+        <button class="icon-btn" id="settingsBtn" aria-label="Settings">⋯</button>
+      </div>
+    </header>
+
+    <div id="banner" class="banner hidden" role="status"></div>
+
+    <main id="view" class="view" aria-live="polite"></main>
+
+    <nav class="tabbar glass" id="tabbar" aria-label="Primary"></nav>
+  </div>
+
+  <div id="toast-host" class="toast-host" aria-live="assertive"></div>
+  <div id="modal-host" class="modal-host"></div>
+  <div id="sheet-host" class="sheet-host"></div>
+
+  <!-- ===== load order matters ===== -->
+  <!-- integration config (non-secret ids) -->
+  <script src="js/config.js"></script>
+
+  <!-- i18n engine + 20 languages -->
+  <script src="js/i18n.js"></script>
+  <script src="js/lang/en.js"></script>
+  <script src="js/lang/es.js"></script>
+  <script src="js/lang/fr.js"></script>
+  <script src="js/lang/de.js"></script>
+  <script src="js/lang/pt.js"></script>
+  <script src="js/lang/it.js"></script>
+  <script src="js/lang/nl.js"></script>
+  <script src="js/lang/sv.js"></script>
+  <script src="js/lang/pl.js"></script>
+  <script src="js/lang/uk.js"></script>
+  <script src="js/lang/ru.js"></script>
+  <script src="js/lang/tr.js"></script>
+  <script src="js/lang/ar.js"></script>
+  <script src="js/lang/hi.js"></script>
+  <script src="js/lang/zh.js"></script>
+  <script src="js/lang/ja.js"></script>
+  <script src="js/lang/ko.js"></script>
+  <script src="js/lang/id.js"></script>
+  <script src="js/lang/vi.js"></script>
+  <script src="js/lang/th.js"></script>
+
+  <!-- core services -->
+  <script src="js/store.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/seed.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/gamify.js"></script>
+  <script src="js/native.js"></script>
+  <script src="js/llm.js"></script>
+  <script src="js/bridge.js"></script>
+  <script src="js/crisis.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/night.js"></script>
+  <script src="js/weather.js"></script>
+  <script src="js/registry.js"></script>
+
+  <!-- feature modules (each self-registers a view) -->
+  <script src="js/features/dashboard.js"></script>
+  <script src="js/features/sleep.js"></script>
+  <script src="js/features/patternDetective.js"></script>
+  <script src="js/features/weatherMap.js"></script>
+  <script src="js/features/experiments.js"></script>
+  <script src="js/features/decompression.js"></script>
+  <script src="js/features/valuesCompass.js"></script>
+  <script src="js/features/mirror.js"></script>
+  <script src="js/features/energyBudget.js"></script>
+  <script src="js/features/journal.js"></script>
+  <script src="js/features/checkin.js"></script>
+  <script src="js/features/hub.js"></script>
+  <script src="js/features/monitor.js"></script>
+  <script src="js/features/guide.js"></script>
+  <script src="js/features/review.js"></script>
+  <script src="js/features/toolkit.js"></script>
+  <script src="js/features/garden.js"></script>
+  <script src="js/features/timeline.js"></script>
+  <script src="js/features/settings.js"></script>
+
+  <!-- onboarding + boot -->
+  <script src="js/onboarding.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
