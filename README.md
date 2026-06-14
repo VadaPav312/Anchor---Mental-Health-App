@@ -132,3 +132,10 @@ Settings.
 > Anchor offers reflections and patterns, never diagnoses. Always consult a
 > qualified professional for medical or mental-health concerns. If you’re in
 > crisis, the ♥ button has real human help, one tap away.
+
+---
+
+## License
+
+Anchor is **open source** under the [MIT License](./LICENSE) — fork it, learn
+from it, build on it.
