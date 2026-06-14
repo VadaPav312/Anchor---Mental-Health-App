@@ -144,7 +144,7 @@ body[data-weather="sun"]   .ambient { filter: hue-rotate(-18deg) saturate(1.2) b
 
 /* insight card (Pattern Detective surfaces these everywhere) */
 .insight { padding: var(--s4) var(--s5); border-radius: var(--r-lg); position: relative; overflow: hidden; }
-.insight .ins-glow { position: absolute; top: -40%; right: -20%; width: 50%; height: 180%; background: radial-gradient(circle, rgba(var(--a1-rgb),0.3), transparent 70%); pointer-events: none; }
+.insight .ins-glow { position: absolute; inset: 0; background: radial-gradient(120% 90% at 100% 0%, rgba(var(--a1-rgb),0.3), rgba(var(--a1-rgb),0) 60%); pointer-events: none; }
 .insight .ins-kicker { display: flex; align-items: center; gap: 7px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--a1); font-weight: 700; margin-bottom: 7px; }
 .insight .ins-text { font-size: 1.02rem; line-height: 1.5; font-weight: 500; }
 .insight .ins-meta { display: flex; gap: var(--s3); margin-top: var(--s3); flex-wrap: wrap; }

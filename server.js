@@ -43,6 +43,10 @@ const ARDUINO_BAUD = +(process.env.ARDUINO_BAUD || 9600);
 // If the Arduino isn't found, synthesize gentle, plausible readings so the app
 // demos end-to-end without the breadboard. Set ANCHOR_SIMULATE=0 to disable.
 const SIMULATE = process.env.ANCHOR_SIMULATE !== "0";
+// DEMO/FAKE mode (ANCHOR_FAKE=1): ignore the (flaky) USB Arduino entirely and
+// serve smooth controlled data — light + sound drift a little, humidity is held
+// constant, no motion, and no ultrasonic/in-bed. Used for a reliable live demo.
+const FAKE = process.env.ANCHOR_FAKE === "1" || process.env.ANCHOR_FAKE === "true";
 // The firmware reports ultrasonic Distance (cm). Something closer than this in
 // front of the sensor = the bed is occupied. Tune to your nightstand setup.
 const IN_BED_CM = +(process.env.ANCHOR_IN_BED_CM || 120);
@@ -253,6 +257,35 @@ function startSimulation() {
 }
 
 // ---------------------------------------------------------------------------
+// FAKE / DEMO DATA (ANCHOR_FAKE=1) — controlled, smooth, hardware-free.
+//   light  -> drifts a little        sound    -> drifts a little
+//   humidity -> held constant        motion   -> always 0
+//   temp   -> steady (fan stays off) ultrasonic/in-bed -> omitted entirely
+// Presents to the app as a connected monitor (source "serial") so it looks live.
+// ---------------------------------------------------------------------------
+function startFake() {
+  live.source = "serial";
+  live.connected = true;
+  let t = 0;
+  setInterval(() => {
+    t += 1;
+    const lightRaw = Math.round(600 + Math.sin(t / 7) * 55 + (Math.random() - 0.5) * 20);
+    const soundRaw = Math.round(150 + Math.abs(Math.sin(t / 4)) * 55 + Math.random() * 20);
+    ingest({
+      T: 21.5,        // steady, comfortable (~70.7°F) so the fan stays off
+      H: 46,          // humidity held constant
+      L: lightRaw,    // light drifts a little
+      N: soundRaw,    // sound drifts a little
+      M: 0,           // no motion
+      F: 0,           // fan off (cool room)
+      // no D on purpose: ultrasonic / in-bed is removed from the demo
+    });
+    live.source = "serial";
+  }, 2000);
+  console.log("Anchor monitor: FAKE demo data (ANCHOR_FAKE=1) — light/sound drift, humidity fixed, no motion, no ultrasonic.");
+}
+
+// ---------------------------------------------------------------------------
 // HTTP
 // ---------------------------------------------------------------------------
 app.use(express.json({ limit: "1mb" }));
@@ -376,9 +409,29 @@ app.get("/", (req, res) => res.sendFile(path.join(__dirname, "www", "index.html"
 
 // ---------------------------------------------------------------------------
 async function boot() {
-  const ok = await initArduino();
-  if (!ok && SIMULATE) startSimulation();
-  app.listen(PORT, () => {
+  // Claim the HTTP port FIRST. If a bridge is already running, a second copy
+  // would otherwise also grab the USB serial port, and the two processes fight
+  // over it — that's the "link lost / reconnected" flapping. Binding the port
+  // before touching the Arduino means a duplicate exits cleanly here and never
+  // disturbs the serial link.
+  const server = app.listen(PORT);
+  server.on("error", (e) => {
+    if (e.code === "EADDRINUSE") {
+      console.error(`\n⚠️  Anchor bridge is ALREADY running on port ${PORT}.`);
+      console.error(`   Starting a second copy is what makes the Arduino keep dropping.`);
+      console.error(`   Use the one already running, or force a clean restart with:\n`);
+      console.error(`       npm run restart\n`);
+      process.exit(1);
+    }
+    throw e;
+  });
+  server.on("listening", async () => {
+    if (FAKE) {
+      startFake();                       // demo mode: ignore the Arduino entirely
+    } else {
+      const ok = await initArduino();
+      if (!ok && SIMULATE) startSimulation();
+    }
     console.log(`\n⚓  Anchor bridge running on http://localhost:${PORT}`);
     console.log(`   Sleep monitor source: ${live.source}`);
     console.log(`   On your phone (same Wi-Fi), set the monitor address to: http://<this-computer-ip>:${PORT}\n`);

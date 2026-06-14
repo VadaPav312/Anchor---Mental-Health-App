@@ -6,9 +6,11 @@
   "scripts": {
     "start": "node server.js",
     "bridge": "node server.js",
+    "restart": "bash scripts/restart-bridge.sh",
     "deploy": "npx cap sync ios",
     "ios": "npx cap sync ios && npx cap open ios",
-    "wire-google": "node scripts/wire-google.js"
+    "wire-google": "node scripts/wire-google.js",
+    "demo": "bash scripts/demo-bridge.sh"
   },
   "keywords": [
     "wellness",

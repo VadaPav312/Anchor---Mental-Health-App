@@ -25,7 +25,6 @@
     lightLux:     [],
     noiseDb:      [],
     motion:       [],
-    distanceCm:   [],
     fan:          [],
   };
 
@@ -201,14 +200,6 @@
       sparkColor: 'var(--a2)',
     },
     {
-      key: 'distanceCm',
-      labelKey: 'mon.mDist',
-      infoKey:  'mon.mDistInfo',
-      icon: 'target',
-      colorFn: distColor,
-      sparkColor: 'var(--a3)',
-    },
-    {
       key: 'fan',
       labelKey: 'mon.mFan',
       infoKey:  'mon.mFanInfo',
@@ -247,9 +238,6 @@
       color = 'var(--warn)';
     }
 
-    const inBedText  = bs.inBed ? t('mon.inBedYes') : t('mon.inBedNo');
-    const inBedColor = bs.inBed ? 'var(--good)' : 'var(--ink-ghost)';
-
     return UI.el('div', { class: 'row gap3', style: { alignItems: 'center', flexWrap: 'wrap' } }, [
       // colored dot + label
       UI.el('span', {
@@ -269,20 +257,6 @@
         class: 'small',
         style: { color, transition: 'color 0.3s', marginRight: '8px' },
       }, text),
-
-      // in-bed pill
-      UI.el('span', {
-        id: inBedPillId(),
-        class: 'chip',
-        style: {
-          background: inBedColor + '22',
-          color: inBedColor,
-          borderColor: inBedColor + '44',
-          fontSize: '0.75rem',
-          padding: '2px 10px',
-          transition: 'all 0.3s',
-        },
-      }, inBedText),
     ]);
   }
 
@@ -308,7 +282,6 @@
 
     const dot  = document.getElementById(statusDotId());
     const txt  = document.getElementById(statusTextId());
-    const pill = document.getElementById(inBedPillId());
 
     if (dot) {
       dot.style.background  = color;
@@ -317,14 +290,6 @@
     if (txt) {
       txt.style.color   = color;
       txt.textContent   = text;
-    }
-    if (pill) {
-      const inBedText  = bs.inBed ? t('mon.inBedYes') : t('mon.inBedNo');
-      const inBedColor = bs.inBed ? 'var(--good)' : 'var(--ink-ghost)';
-      pill.style.background   = inBedColor + '22';
-      pill.style.color        = inBedColor;
-      pill.style.borderColor  = inBedColor + '44';
-      pill.textContent        = inBedText;
     }
   }
 
@@ -561,7 +526,6 @@
       pushBuf('lightLux',     live.lightLux);
       pushBuf('noiseDb',      live.noiseDb);
       pushBuf('motion',       live.motion);
-      pushBuf('distanceCm',   live.distanceCm);
       pushBuf('fan',          live.fan);
     }
 
