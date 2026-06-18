@@ -4,7 +4,7 @@
 // ===========================================================================
 window.CONFIG = {
   // Google WEB client id (Firebase) — used by the web "Sign in with Google" button.
-  firebaseClientId: '627695329462-im66fvcj0up28brbj2kohj8ao3gkh325.apps.googleusercontent.com',
+  firebaseClientId: '96377719286-nrt9cit2cemlvp5q6sqjse65k9n8d6lv.apps.googleusercontent.com',
   // Google iOS client id — REQUIRED for native Google sign-in inside the iPhone
   // app. Create an "iOS" OAuth client in Firebase/Google Cloud and paste it here
   // (looks like 627695329462-XXXX.apps.googleusercontent.com). Also add its
