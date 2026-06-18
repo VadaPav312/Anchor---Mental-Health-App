@@ -7,10 +7,6 @@
 
   // ---- helpers --------------------------------------------------------------
 
-  function bridgeUrl() {
-    return (Store.get('settings.bridgeUrl', '') || '').replace(/\/$/, '');
-  }
-
   // Infer the most disruptive thought category from history.
   // Heuristic: for each wind-down session, look at the sleep record the
   // *following* date. If that sleep score is below 55 (poor), tally the
@@ -149,20 +145,6 @@
       UI.el('div', { class: 'small soft mt1' }, t('dec.sub')),
     ]));
 
-    // In-bed triggered banner
-    if (Bridge.state && Bridge.state.inBed) {
-      wrap.appendChild(
-        UI.el('div', {
-          class: 'glass-card card',
-          style: { borderColor: 'rgba(124,156,255,0.5)', background: 'rgba(124,156,255,0.08)' },
-        }, [
-          UI.el('div', { class: 'row gap3', style: { alignItems: 'center' } }, [
-            UI.frag('<span style="font-size:1.8rem">🌙</span>'),
-            UI.el('div', { class: 'b' }, t('dec.triggeredByBed')),
-          ]),
-        ])
-      );
-    }
 
     // Intro card
     wrap.appendChild(
@@ -775,20 +757,6 @@
         dimLabel.style.opacity = '1';
       });
     });
-
-    // Best-effort bridge dim
-    if (Bridge.configured()) {
-      try {
-        var url = bridgeUrl() + '/api/light';
-        fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ brightness: 0 }),
-        }).catch(function () {});
-      } catch (e) {
-        // never block
-      }
-    }
 
     // After 3.2s transition to finish screen, remove the dim label, then run AI
     setTimeout(function () {

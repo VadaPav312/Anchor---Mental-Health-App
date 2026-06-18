@@ -43,8 +43,8 @@
       const durationMin = chance(0.3) ? rang(330, 388) : rang(400, 510);   // some short nights
       const humidity = rang(38, 60), lightLux = rang(0, 14), noiseDb = rang(26, 46);
       const motion = Math.round(rang(20, 120)), awakenings = Math.round(rang(0, 3));
-      const envScore = Bridge.environmentScore({ tempF, humidity, lightLux, noiseDb });
-      const score = Bridge.sleepScore({ durationMin, envScore, awakenings, motion });
+      const envScore = SleepScore.environment({ tempF, humidity, lightLux, noiseDb });
+      const score = SleepScore.sleep({ durationMin, envScore, awakenings, motion });
       tempArr[i] = tempF; shortArr[i] = durationMin < 390 ? 1 : 0;
       sleep.push({ date: dk(i), durationMin: Math.round(durationMin), tempF: +tempF.toFixed(1), humidity: +humidity.toFixed(0), lightLux: +lightLux.toFixed(0), noiseDb: +noiseDb.toFixed(0), motion, awakenings, restful: clamp(Math.round(score / 12), 1, 10), envScore, score, source: 'demo' });
     }

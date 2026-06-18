@@ -74,9 +74,6 @@
       window.addEventListener('online', () => offline(false));
     }
 
-    const AP = P('App');
-    if (AP) { try { AP.addListener('appStateChange', ({ isActive }) => { if (isActive && window.Bridge) Bridge.poll(); }); } catch {} }
-
     const KB = P('Keyboard');
     if (KB) { try { KB.setResizeMode && KB.setResizeMode({ mode: 'native' }); } catch {} }
   };

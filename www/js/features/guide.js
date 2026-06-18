@@ -16,7 +16,6 @@
     { id: 'patterns',    t: 'tour.patterns_t',    d: 'tour.patterns_d'    },
     { id: 'decompress',  t: 'tour.decompress_t',  d: 'tour.decompress_d'  },
     { id: 'sleep',       t: 'tour.sleep_t',       d: 'tour.sleep_d'       },
-    { id: 'monitor',     t: 'tour.monitor_t',     d: 'tour.monitor_d'     },
     { id: 'checkin',     t: 'tour.checkin_t',     d: 'tour.checkin_d'     },
     { id: 'journal',     t: 'tour.journal_t',     d: 'tour.journal_d'     },
     { id: 'experiments', t: 'tour.experiments_t', d: 'tour.experiments_d' },

@@ -160,11 +160,10 @@
   function windDownCard() {
     const h = new Date().getHours();
     const evening = h >= 20 || h < 4;
-    const inBed = Bridge.state && Bridge.state.inBed;
     return UI.el('div', { class: 'glass-card card', style: evening ? { borderColor: 'rgba(124,156,255,0.35)' } : null }, [
       UI.el('div', { class: 'row between gap3' }, [
         UI.el('div', { class: 'grow' }, [
-          UI.el('div', { class: 'b big' }, inBed ? t('dec.triggeredByBed') : t('dash.windDownReady')),
+          UI.el('div', { class: 'b big' }, t('dash.windDownReady')),
           UI.el('div', { class: 'small soft mt1' }, t('dash.windDownSub')),
         ]),
         UI.frag(`<span style="font-size:1.6rem">🌙</span>`),

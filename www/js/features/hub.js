@@ -26,7 +26,6 @@
       { id: 'toolkit' },
       { id: 'energy', stat: () => { const e = Store.derive.energyToday(); return e.count ? UI.fmt.signed(e.net) : ''; } },
       { id: 'sleep', stat: () => { const s = Store.derive.lastSleep(); return s ? s.score : ''; } },
-      { id: 'monitor', stat: () => (Bridge && Bridge.state && Bridge.state.connected) ? '●' : '' },
     ] },
   ];
 

@@ -203,7 +203,6 @@
     wireChrome();
     buildTabbar();
     Native.syncReminders && Native.syncReminders();
-    if (Bridge.configured()) Bridge.poll(6000);
     if (window.Night && Night.isActive()) { Night.check(); Anchor.go('home'); return; }
     // first run after onboarding: introduce every feature (once)
     if (window.Guide && Guide.maybeAutoShow()) return;

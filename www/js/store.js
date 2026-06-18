@@ -6,7 +6,7 @@
 //
 // Data streams (all arrays of records unless noted):
 //   profile        { name, createdAt, onboarded, timezone }
-//   settings       { lang, theme, tempUnit, llmKey, llmModel, bridgeUrl, liveTranslate, reminders }
+//   settings       { lang, theme, tempUnit, llmKey, llmModel, liveTranslate, reminders }
 //   values         [{ id, name, why }]
 //   sleep          [{ id, date, inBedAt, outAt, durationMin, tempF, humidity, lightLux, noiseDb, motion, awakenings, restful(0-10), envScore, score, source }]
 //   moods          [{ id, ts, date, valence(-2..2), energy(0-10), arousal(0-10), note, tags[] }]
@@ -28,7 +28,7 @@
       profile: { name: '', createdAt: null, onboarded: false, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'local' },
       settings: {
         lang: null, theme: 'aurora', tempUnit: 'F',
-        llmKey: '', llmModel: '', bridgeUrl: '',
+        llmKey: '', llmModel: '',
         liveTranslate: false,
         reminders: { windDown: { on: false, hour: 21, minute: 30 }, checkin: { on: false, hour: 19, minute: 0 } },
       },

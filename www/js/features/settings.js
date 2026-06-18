@@ -219,46 +219,6 @@
       Store.settings.update({ llmModel: modelInput.value.trim() });
     });
 
-    // Bridge URL field
-    const bridgeInput = UI.el('input', {
-      type: 'url',
-      class: 'field-input',
-      value: settings.bridgeUrl || '',
-      placeholder: 'http://192.168.1.20:3000',
-      style: { width: '100%', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: 'var(--r-sm)', padding: '8px 10px', color: 'var(--ink)', fontSize: '0.9rem' },
-    });
-    bridgeInput.addEventListener('change', function () {
-      Store.settings.update({ bridgeUrl: bridgeInput.value.trim() });
-    });
-
-    // Test connection button + status
-    const statusEl = UI.el('div', { class: 'small soft', style: { marginTop: '6px', minHeight: '18px' } });
-
-    const testBtn = UI.btn(t('set.testConnection'), {
-      class: 'btn-ghost btn-sm',
-      onClick: async function () {
-        Store.settings.update({
-          llmKey: keyInput.value.trim(),
-          llmModel: modelInput.value.trim(),
-          bridgeUrl: bridgeInput.value.trim(),
-        });
-        statusEl.textContent = t('set.testing');
-        statusEl.style.color = 'var(--ink-ghost)';
-        testBtn.disabled = true;
-        try {
-          const d = await Bridge.diagnose();
-          statusEl.textContent = (d.ok ? '✅ ' : '⚠️ ') + d.message;
-          statusEl.style.color = d.ok ? (d.code === 'live' ? 'var(--good)' : 'var(--warn)') : 'var(--bad)';
-          UI.haptic(d.ok ? 'success' : 'error');
-        } catch (_e) {
-          statusEl.textContent = '⚠️ ' + t('set.testFail');
-          statusEl.style.color = 'var(--bad)';
-        } finally {
-          testBtn.disabled = false;
-        }
-      },
-    });
-
     return [
       sectionHead('set.device'),
       UI.el('div', { class: 'glass-card card col gap4' }, [
@@ -272,15 +232,6 @@
           modelInput,
           null
         ),
-        UI.field(
-          t('set.bridgeUrl'),
-          bridgeInput,
-          t('set.bridgeUrlSub')
-        ),
-        UI.el('div', { class: 'col gap1' }, [
-          testBtn,
-          statusEl,
-        ]),
       ]),
     ];
   }
@@ -612,84 +563,6 @@
     ];
   }
 
-  // ---- email & digests (Resend) -------------------------------------------
-  function emailSummaryLines() {
-    const lines = [];
-    const s = Store.derive.lastSleep && Store.derive.lastSleep();
-    if (s) lines.push('Last night: ' + UI.fmt.dur(s.durationMin) + ' in bed, sleep score ' + s.score + '.');
-    const m = Store.derive.dayMood && Store.derive.dayMood(Store.today());
-    if (m) lines.push('Today’s inner weather: ' + UI.weatherName(m.weather) + '.');
-    if (Store.streak() > 1) lines.push('You’re on a ' + Store.streak() + '-day streak. 🔥');
-    const top = window.PatternDetective && PatternDetective.topInsight && PatternDetective.topInsight();
-    if (top) lines.push('Anchor noticed: ' + top.text);
-    if (!lines.length) lines.push('Keep checking in — your first patterns are on their way.');
-    return lines;
-  }
-
-  async function postEmail(pathName, body) {
-    const base = (Store.get('settings.bridgeUrl', '') || '').trim().replace(/\/+$/, '');
-    const urls = [];
-    if (base) urls.push((/^https?:\/\//i.test(base) ? base : 'http://' + base) + pathName);
-    urls.push(pathName); // relative — works when the page is served by the bridge
-    let lastErr = { error: t('email.noBridge') };
-    for (const u of urls) {
-      try {
-        const r = await fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        const j = await r.json().catch(() => ({}));
-        if (r.ok) return { ok: true, j };
-        lastErr = j.code === 'no-key' ? { error: t('email.noKey') } : j;
-      } catch (e) { /* try next */ }
-    }
-    return { ok: false, error: lastErr.error || t('email.failed') };
-  }
-
-  function emailSection() {
-    const acct = (window.Auth && Auth.account && Auth.account()) || {};
-    const emailInput = UI.el('input', { type: 'email', class: 'input', value: acct.email || Store.get('profile.account.email', '') || '',
-      placeholder: t('email.addressPlaceholder'), autocapitalize: 'none', autocomplete: 'email', style: { margin: '0 16px', width: 'calc(100% - 32px)' } });
-    emailInput.addEventListener('blur', () => {
-      const v = emailInput.value.trim();
-      const a = Store.get('profile.account', null);
-      if (a) { a.email = v; Store.profile.update({ account: a }); }
-    });
-    const status = UI.el('div', { class: 'small', style: { padding: '6px 16px 0', minHeight: '18px', color: 'var(--ink-faint)' } });
-
-    const testBtn = UI.btn(t('email.test'), { class: 'btn-primary btn-sm', icon: 'bell', onClick: async () => {
-      const to = emailInput.value.trim();
-      if (!/.+@.+\..+/.test(to)) { status.textContent = '⚠️ ' + t('email.noAddress'); status.style.color = 'var(--bad)'; UI.haptic('error'); return; }
-      status.textContent = t('email.sending'); status.style.color = 'var(--ink-faint)'; testBtn.disabled = true;
-      const r = await postEmail('/api/email/test', { to, name: Store.profile.name(), lines: emailSummaryLines(), subject: t('email.subject') });
-      status.textContent = (r.ok ? '✅ ' + t('email.sent') : '⚠️ ' + r.error);
-      status.style.color = r.ok ? 'var(--good)' : 'var(--bad)';
-      UI.haptic(r.ok ? 'success' : 'error'); testBtn.disabled = false;
-    } });
-
-    function broadcastBtn(kind, labelKey) {
-      const id = (window.CONFIG && CONFIG.resend && CONFIG.resend[kind]) || '';
-      return UI.btn(t(labelKey), { class: 'btn-ghost btn-sm', onClick: async () => {
-        status.textContent = t('email.sending'); testBtn.disabled = true;
-        const r = await postEmail('/api/email/broadcast', { kind, broadcastId: id });
-        status.textContent = (r.ok ? '✅ ' + t('email.sent') : '⚠️ ' + r.error);
-        status.style.color = r.ok ? 'var(--good)' : 'var(--bad)';
-        UI.haptic(r.ok ? 'success' : 'error'); testBtn.disabled = false;
-      } });
-    }
-
-    return [
-      sectionHead('email.section'),
-      glassSection([
-        UI.el('div', { class: 'small soft', style: { padding: '12px 16px 0' } }, t('email.sub')),
-        emailInput,
-        UI.el('div', { style: { padding: '12px 16px 6px' } }, [testBtn]),
-        status,
-        UI.el('div', { class: 'row wrap gap2', style: { padding: '8px 16px 14px' } }, [
-          broadcastBtn('daily', 'email.daily'), broadcastBtn('weekly', 'email.weekly'), broadcastBtn('monthly', 'email.monthly'),
-        ]),
-        UI.el('div', { class: 'tiny muted', style: { padding: '0 16px 12px' } }, t('email.digestNote')),
-      ]),
-    ];
-  }
-
   // ---- location weather ----------------------------------------------------
   function locationSection() {
     if (!window.Weather) return [];
@@ -728,7 +601,6 @@
     appendItems(scheduleSection());
     appendItems(deviceSection(root));
     appendItems(locationSection());
-    appendItems(emailSection());
     appendItems(remindersSection());
     appendItems(dataSection());
     appendItems(aboutSection());

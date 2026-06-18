@@ -1,21 +1,15 @@
 {
   "name": "anchor",
   "version": "1.0.0",
-  "description": "Anchor — a mental-wellness companion paired with a bedside Arduino sleep monitor. Compounding, deeply personal insight that reflects you back to yourself.",
-  "main": "server.js",
+  "description": "Anchor — a mental-wellness companion. Compounding, deeply personal insight that reflects you back to yourself.",
   "scripts": {
-    "start": "node server.js",
-    "bridge": "node server.js",
-    "restart": "bash scripts/restart-bridge.sh",
     "deploy": "npx cap sync ios",
     "ios": "npx cap sync ios && npx cap open ios",
-    "wire-google": "node scripts/wire-google.js",
-    "demo": "bash scripts/demo-bridge.sh"
+    "wire-google": "node scripts/wire-google.js"
   },
   "keywords": [
     "wellness",
     "sleep",
-    "arduino",
     "capacitor",
     "ios",
     "mental-health"
@@ -35,9 +29,6 @@
     "@capacitor/share": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
-    "@capgo/capacitor-social-login": "^8.3.22",
-    "@serialport/parser-readline": "^13.0.0",
-    "express": "^5.2.1",
-    "serialport": "^13.0.0"
+    "@capgo/capacitor-social-login": "^8.3.22"
   }
 }

@@ -42,8 +42,6 @@
     Store.set('session.goodnight', { since, wakeAt: nextWake(since) });
     UI.haptic('success');
     showOverlay();
-    // ask the bridge to take the lamp to darkness, best-effort
-    try { if (Bridge && Bridge.configured && Bridge.configured()) fetch((Store.get('settings.bridgeUrl') || '').replace(/\/+$/, '') + '/api/light', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brightness: 0 }) }).catch(() => {}); } catch {}
   }
 
   function check() {
@@ -58,9 +56,8 @@
     removeOverlay();
     UI.haptic('light');
     if (toMorning && window.Anchor) {
-      // morning check: prefer capturing last night, else a mood check-in
-      if (Bridge && Bridge.configured && Bridge.configured()) Anchor.go('sleep');
-      else Anchor.go('checkin');
+      // morning check: a gentle mood check-in
+      Anchor.go('checkin');
     }
   }
 

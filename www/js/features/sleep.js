@@ -1,60 +1,13 @@
 // ===========================================================================
-// sleep.js — Sleep screen. Live room monitor, nightly scores, trends, manual
-// logging, and night detail sheets. Connects via Bridge (bedside Arduino).
+// sleep.js — Sleep journal. Manual nightly logging, nightly scores, 7-night
+// trends, and night detail sheets. Pure software — no hardware required.
 // ===========================================================================
 (function () {
 
   // ---- module state --------------------------------------------------------
-  let _unsubBridge = null;   // cleanup fn returned by Bridge.onUpdate
   let _activeMetric = 'sleepScore';
 
   // ---- helpers -------------------------------------------------------------
-  function tempLabel(f) {
-    if (f == null) return null;
-    if (f < 64) return t('sleep.tooCold');
-    if (f <= 70) return t('sleep.tempIdeal');
-    return t('sleep.tooWarm');
-  }
-
-  function tempColor(f) {
-    if (f == null) return 'var(--ink-ghost)';
-    if (f < 64) return 'var(--a3)';
-    if (f <= 70) return 'var(--good)';
-    return 'var(--bad)';
-  }
-
-  function humidityColor(h) {
-    if (h == null) return 'var(--ink-ghost)';
-    if (h >= 35 && h <= 55) return 'var(--good)';
-    return 'var(--warn)';
-  }
-
-  function lightColor(lux) {
-    if (lux == null) return 'var(--ink-ghost)';
-    if (lux <= 8) return 'var(--good)';
-    if (lux <= 20) return 'var(--warn)';
-    return 'var(--bad)';
-  }
-
-  function lightLabel(lux) {
-    if (lux == null) return null;
-    if (lux <= 8) return null;
-    return t('sleep.tooBright');
-  }
-
-  function noiseColor(db) {
-    if (db == null) return 'var(--ink-ghost)';
-    if (db <= 35) return 'var(--good)';
-    if (db <= 50) return 'var(--warn)';
-    return 'var(--bad)';
-  }
-
-  function noiseLabel(db) {
-    if (db == null) return null;
-    if (db > 35) return t('sleep.tooLoud');
-    return null;
-  }
-
   function scoreColor(v) {
     if (v == null) return 'var(--ink-ghost)';
     if (v >= 75) return 'var(--good)';
@@ -79,158 +32,6 @@
       UI.el('h1', { class: 'page-title serif' }, t('sleep.title')),
       UI.el('div', { class: 'small soft mt1' }, t('sleep.sub')),
     ]));
-  }
-
-  // ---- connection badge ----------------------------------------------------
-  function statusBadge(connected, lastError) {
-    let text, color;
-    if (connected) {
-      text = t('sleep.connected');
-      color = 'var(--good)';
-    } else if (lastError === 'no-address') {
-      text = t('sleep.disconnected');
-      color = 'var(--ink-ghost)';
-    } else {
-      text = Bridge.state.live === null ? t('sleep.connecting') : t('sleep.disconnected');
-      color = 'var(--warn)';
-    }
-    return UI.el('div', { class: 'row gap2', style: { alignItems: 'center' } }, [
-      UI.el('span', {
-        style: {
-          width: '8px', height: '8px', borderRadius: '50%',
-          background: color, flexShrink: '0',
-          boxShadow: connected ? '0 0 6px ' + color : 'none',
-        },
-      }),
-      UI.el('span', { class: 'small', style: { color } }, text),
-    ]);
-  }
-
-  // ---- gauge tile (live reading) ------------------------------------------
-  function gaugeTile(icon, label, value, sub, color) {
-    return UI.el('div', { class: 'tile glass-card', style: { flex: '1 1 calc(50% - 6px)', minWidth: '120px' } }, [
-      UI.el('div', { class: 'row between' }, [
-        UI.el('div', { class: 'tile-lbl' }, label),
-        UI.frag('<span style="width:18px;height:18px;color:' + (color || 'var(--ink-ghost)') + '">' + Icons.get(icon) + '</span>'),
-      ]),
-      UI.el('div', { class: 'tile-val', style: { color: color || 'var(--ink)', marginTop: '4px', fontSize: '1.5rem' } }, value || '—'),
-      sub ? UI.el('div', { class: 'tile-sub', style: { color: color || '' } }, sub) : null,
-    ]);
-  }
-
-  // ---- live monitor panel --------------------------------------------------
-  function buildMonitorPanel(container) {
-    const panel = UI.el('div', { id: 'sleep-monitor-panel' });
-    container.appendChild(panel);
-    renderMonitorPanel(panel);
-    return panel;
-  }
-
-  function renderMonitorPanel(panel) {
-    UI.clear(panel);
-    const bs = Bridge.state;
-    const live = bs.live;
-
-    if (!Bridge.configured()) {
-      panel.appendChild(buildSetupHint());
-      return;
-    }
-
-    const card = UI.card([
-      // header row: eyebrow + badge + buttons
-      UI.el('div', { class: 'row between gap3', style: { marginBottom: '10px' } }, [
-        UI.el('div', {}, [
-          UI.el('div', { class: 'eyebrow' }, t('sleep.live')),
-          statusBadge(bs.connected, bs.lastError),
-        ]),
-        UI.el('div', { class: 'row gap2' }, [
-          UI.btn(t('app.retry'), {
-            class: 'btn-ghost btn-sm',
-            icon: 'bolt',
-            onClick: () => {
-              try { Bridge.reconnect(); } catch (e) { console.warn('reconnect', e); }
-            },
-          }),
-          UI.btn(t('sleep.inBed'), {
-            class: 'btn-sm btn-primary',
-            icon: 'moon',
-            onClick: async () => {
-              try {
-                await Bridge.captureNight();
-                Anchor.refresh();
-              } catch (e) {
-                UI.toast(t('sleep.disconnected'), 'bad');
-              }
-            },
-          }),
-        ]),
-      ]),
-
-      // gauge tiles grid
-      UI.el('div', { class: 'row wrap gap3', style: { marginTop: '4px' } }, [
-        // temperature
-        gaugeTile(
-          'thermo',
-          t('sleep.temp'),
-          live ? UI.fmt.temp(live.temperatureF) : '—',
-          live ? tempLabel(live.temperatureF) : null,
-          live ? tempColor(live.temperatureF) : null
-        ),
-        // humidity
-        gaugeTile(
-          'droplet',
-          t('sleep.humidity'),
-          live && live.humidity != null ? Math.round(live.humidity) + '%' : '—',
-          null,
-          live ? humidityColor(live.humidity) : null
-        ),
-        // light
-        gaugeTile(
-          'sun',
-          t('sleep.light'),
-          live && live.lightLux != null ? UI.fmt.num(live.lightLux, 1) + ' lux' : '—',
-          live ? lightLabel(live.lightLux) : null,
-          live ? lightColor(live.lightLux) : null
-        ),
-        // noise
-        gaugeTile(
-          'sound',
-          t('sleep.noise'),
-          live && live.noiseDb != null ? Math.round(live.noiseDb) + ' dB' : '—',
-          live ? noiseLabel(live.noiseDb) : null,
-          live ? noiseColor(live.noiseDb) : null
-        ),
-        // movement
-        gaugeTile(
-          'wind',
-          t('sleep.motion'),
-          live && live.motion != null ? UI.fmt.num(live.motion, 0) : '—',
-          live && live.motion != null && live.motion > 20 ? t('sleep.restless') : null,
-          live && live.motion != null ? (live.motion > 20 ? 'var(--warn)' : 'var(--good)') : null
-        ),
-      ]),
-    ], { sheen: true });
-
-    panel.appendChild(card);
-  }
-
-  function buildSetupHint() {
-    return UI.card([
-      UI.el('div', { class: 'row gap3', style: { alignItems: 'flex-start' } }, [
-        UI.frag('<span style="font-size:2rem;flex-shrink:0">🌙</span>'),
-        UI.el('div', { class: 'grow' }, [
-          UI.el('div', { class: 'b' }, t('sleep.disconnected')),
-          UI.el('div', { class: 'small soft mt1' }, t('sleep.setupHint')),
-          UI.el('div', { style: { marginTop: '12px' } }, [
-            UI.btn(t('set.bridgeUrl'), {
-              class: 'btn-ghost btn-sm',
-              icon: 'settings',
-              onClick: () => Anchor.go('settings'),
-            }),
-          ]),
-        ]),
-      ]),
-    ]);
   }
 
   // ---- scores ring row (last night) ----------------------------------------
@@ -592,13 +393,13 @@
               storedTempF = form.tempF * 9 / 5 + 32;
             }
 
-            const envScore = Bridge.environmentScore({
+            const envScore = SleepScore.environment({
               tempF: storedTempF,
               humidity: form.humidity,
               lightLux: form.lightLux,
               noiseDb: form.noiseDb,
             });
-            const score = Bridge.sleepScore({
+            const score = SleepScore.sleep({
               durationMin: form.durationMin,
               envScore,
               awakenings: form.awakenings,
@@ -643,51 +444,20 @@
     // 1. page head
     buildHead(root);
 
-    // 2. live monitor panel (or setup hint)
-    buildMonitorPanel(root);
-
-    // 3. score rings for last night
+    // 2. score rings for last night
     buildScoreRings(root);
 
-    // 4. 7-night trend
+    // 3. 7-night trend
     const hasSleep = Store.sleep.all().length > 0;
     if (hasSleep) {
       buildTrend(root);
     }
 
-    // 5. nights list + add manual
+    // 4. nights list + add manual
     buildNightsList(root);
 
     // bottom padding
     root.appendChild(UI.el('div', { style: { height: '40px' } }));
-  }
-
-  // ---- onShow: start live polling -----------------------------------------
-  function onShow() {
-    // Unsubscribe any previous subscription
-    if (_unsubBridge) { try { _unsubBridge(); } catch {} _unsubBridge = null; }
-
-    // Subscribe to Bridge updates — but only rebuild the panel when the
-    // (rounded) values actually CHANGED, so it doesn't flicker every poll.
-    let lastSig = '';
-    _unsubBridge = Bridge.onUpdate((state) => {
-      const panel = document.getElementById('sleep-monitor-panel');
-      if (!panel) return;
-      const l = state.live || {};
-      const sig = [state.connected, state.inBed, Math.round(l.temperatureF || 0), Math.round(l.humidity || 0),
-        Math.round(l.lightLux || 0), Math.round(l.noiseDb || 0), l.motion].join('|');
-      if (sig === lastSig) return;
-      lastSig = sig;
-      renderMonitorPanel(panel);
-    });
-
-    // Start live polling (calm — the Live Monitor screen is for fast graphs)
-    if (Bridge.configured()) {
-      try { Bridge.poll(6000); } catch (e) { console.warn('bridge poll', e); }
-    } else {
-      // Still fire once so the state reflects "not configured"
-      try { Bridge.live(); } catch {}
-    }
   }
 
   // ---- register ------------------------------------------------------------
@@ -698,7 +468,6 @@
     order: 15,
     tab: false,
     render,
-    onShow,
   });
 
 })();
