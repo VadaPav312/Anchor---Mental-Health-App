@@ -7,6 +7,44 @@
 // locale, so it points to directories that do, plus a few major lines.
 // ===========================================================================
 (function () {
+  // Region → emergency / crisis numbers. The user's region is asked at start and
+  // stored in settings.emergency; this is the fallback table + picker source.
+  const REGIONS = {
+    US: { label: 'United States', services: '911', crisis: '988', crisisText: '741741' },
+    CA: { label: 'Canada', services: '911', crisis: '988', crisisText: '741741' },
+    GB: { label: 'United Kingdom', services: '999', crisis: '116123', crisisText: '85258' },
+    IE: { label: 'Ireland', services: '112', crisis: '116123', crisisText: '50808' },
+    AU: { label: 'Australia', services: '000', crisis: '131114', crisisText: '' },
+    NZ: { label: 'New Zealand', services: '111', crisis: '1737', crisisText: '1737' },
+    IN: { label: 'India', services: '112', crisis: '9152987821', crisisText: '' },
+    EU: { label: 'Europe', services: '112', crisis: '112', crisisText: '' },
+    Other: { label: 'Other / International', services: '112', crisis: '', crisisText: '' },
+  };
+  function numbers() {
+    const e = Store.get('settings.emergency', null);
+    if (e && e.services) return e;
+    return REGIONS[Store.get('settings.region', 'US')] || REGIONS.US;
+  }
+
+  // A focused SOS panel: big call buttons, region-aware.
+  function sos() {
+    UI.haptic('warning');
+    const n = numbers();
+    const callBtn = (label, num, primary) => num ? UI.el('a', {
+      class: 'btn btn-block ' + (primary ? '' : 'btn-ghost'),
+      href: 'tel:' + num, style: primary ? { background: 'linear-gradient(120deg,#ff8a9c,#ff5c7c)', color: '#fff', fontSize: '1.05rem', padding: '16px' } : { marginTop: '8px' },
+    }, label) : null;
+    const body = UI.el('div', { class: 'col gap2' }, [
+      UI.el('p', { class: 'soft', style: { lineHeight: '1.55', marginBottom: '6px' } }, t('sos.sub')),
+      callBtn('⛑  ' + t('sos.callServices', { n: n.services }), n.services, true),
+      callBtn('☎  ' + t('sos.callCrisis', { n: n.crisis }), n.crisis, false),
+      n.crisisText ? UI.el('a', { class: 'btn btn-ghost btn-block', href: 'sms:' + n.crisisText, style: { marginTop: '8px' } }, '💬  ' + t('sos.textCrisis', { n: n.crisisText })) : null,
+      UI.el('button', { class: 'btn btn-ghost btn-block', style: { marginTop: '8px' }, onclick: () => { s.close(); breathing(); } }, '🫁  ' + t('care.breathe')),
+      UI.el('p', { class: 'tiny muted tac', style: { marginTop: '8px', lineHeight: '1.5' } }, t('sos.holdSafe')),
+    ]);
+    const s = UI.sheet({ title: '⛑  ' + t('sos.title'), body });
+  }
+
   const RESOURCES = [
     { region: 'International', name: 'Find A Helpline', detail: 'Free, confidential lines in 130+ countries', url: 'https://findahelpline.com' },
     { region: 'International', name: 'Befrienders Worldwide', detail: 'Emotional support centers globally', url: 'https://www.befrienders.org' },
@@ -18,14 +56,16 @@
 
   function open() {
     UI.haptic('light');
+    const n = numbers();
     const body = UI.el('div', { class: 'col gap3' }, [
       UI.el('p', { class: 'soft', style: { lineHeight: '1.55' } }, t('care.sub')),
 
-      // immediate danger
+      // immediate danger — region-aware emergency call
       UI.el('div', { class: 'glass-card card-tight', style: { borderColor: 'rgba(255,138,156,0.4)' } }, [
         UI.el('div', { class: 'b', style: { color: 'var(--bad)' } }, t('care.crisisNow')),
         UI.el('div', { class: 'small soft mt1' }, t('care.crisisNowSub')),
-        UI.el('a', { class: 'btn btn-primary btn-block mt3', href: 'tel:112', style: { background: 'linear-gradient(120deg,#ff8a9c,#ff6f8c)' } }, '⛑  ' + t('care.talkNow')),
+        UI.el('a', { class: 'btn btn-primary btn-block mt3', href: 'tel:' + n.services, style: { background: 'linear-gradient(120deg,#ff8a9c,#ff6f8c)' } }, '⛑  ' + t('sos.callServices', { n: n.services })),
+        n.crisis ? UI.el('a', { class: 'btn btn-ghost btn-block mt2', href: 'tel:' + n.crisis }, '☎  ' + t('sos.callCrisis', { n: n.crisis })) : null,
       ]),
 
       // breathing reset
@@ -79,5 +119,5 @@
     run();
   }
 
-  window.Crisis = { open, breathing, RESOURCES };
+  window.Crisis = { open, sos, breathing, RESOURCES, REGIONS, numbers };
 })();

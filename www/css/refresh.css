@@ -1,0 +1,387 @@
+/* ===========================================================================
+   refresh.css — the redesign layer.
+     · subtle background line-art (doodles)
+     · user-customizable spacing density
+     · a more distinctive navigation dock with a raised center FAB
+     · the docked coach tour + the first-run intro splash
+     · a danger button (delete account)
+   Loaded LAST so it can refine tokens/components from the base sheets.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. BACKGROUND LINE-ART — tiny, soft drawings woven into the backdrop.
+   They sit between the glow orbs and the grain, never competing with content.
+   --------------------------------------------------------------------------- */
+.ambient-doodles {
+  position: absolute; inset: 0; pointer-events: none;
+  opacity: 0.05; mix-blend-mode: screen;
+  background-repeat: repeat; background-size: 250px 250px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250' viewBox='0 0 250 250' fill='none' stroke='%23ffffff' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M36 32v16M28 40h16'/%3E%3Cpath d='M200 28a11 11 0 1 0 0 20 9 9 0 0 1 0-20z'/%3E%3Cpath d='M168 86c-15 0-24 9-24 22 13 0 24-9 24-22z'/%3E%3Cpath d='M148 106l16-14'/%3E%3Cpath d='M26 132q9-9 18 0t18 0 18 0'/%3E%3Ccircle cx='112' cy='66' r='1.7' fill='%23ffffff' stroke='none'/%3E%3Ccircle cx='214' cy='132' r='1.7' fill='%23ffffff' stroke='none'/%3E%3Ccircle cx='66' cy='200' r='1.7' fill='%23ffffff' stroke='none'/%3E%3Ccircle cx='196' cy='190' r='9'/%3E%3Cpath d='M196 174v-7M196 213v-7M179 190h-7M220 190h-7'/%3E%3Cpath d='M116 166c-5-5-14-2-14 6 0 7 14 14 14 14s14-7 14-14c0-8-9-11-14-6z'/%3E%3Cpath d='M44 214v9M40 218h9'/%3E%3Cpath d='M120 30v12M114 36h12'/%3E%3C/svg%3E");
+}
+body.theme-daylight .ambient-doodles { mix-blend-mode: normal; filter: invert(1); opacity: 0.06; }
+body.doodles-off .ambient-doodles { display: none; }
+
+/* plain background: a clean solid color (the chosen accent's deep tone) with no
+   drifting orbs or time-wash — for users who prefer calm over motion. */
+body.bg-plain .ambient { background: var(--bg-1); }
+body.bg-plain .ambient-orb,
+body.bg-plain .ambient::after,
+body.bg-plain .ambient-grain { display: none; }
+
+/* ---------------------------------------------------------------------------
+   2. SPACING DENSITY — overrides the spacing scale on <body>, so every card,
+   gap, grid and page padding rescales at once. "cozy" = the original feel.
+   --------------------------------------------------------------------------- */
+body.density-compact {
+  --s2: 6px; --s3: 9px; --s4: 12px; --s5: 16px;
+  --s6: 20px; --s7: 26px; --s8: 34px; --s9: 46px;
+  --r-lg: 22px; --r-xl: 28px;
+}
+body.density-spacious {
+  --s2: 11px; --s3: 16px; --s4: 22px; --s5: 30px;
+  --s6: 40px; --s7: 52px; --s8: 66px; --s9: 86px;
+}
+/* compact trims the chunkiest type a touch so screens feel calmer, not crammed */
+body.density-compact .page-title { font-size: 1.5rem; }
+body.density-compact .tile .tile-val { font-size: 1.45rem; }
+body.density-spacious .page { gap: var(--s5); }
+
+/* ---------------------------------------------------------------------------
+   3. NAVIGATION — a floating glass bar of 4 main tabs with a RAISED center orb
+   that blooms the secondary features in a radial menu.
+   --------------------------------------------------------------------------- */
+.navdock {
+  position: absolute; z-index: 7;
+  left: max(var(--s3), var(--safe-l)); right: max(var(--s3), var(--safe-r));
+  bottom: calc(var(--safe-b) + 10px);
+  height: var(--tabbar-h);
+  display: flex; align-items: stretch; justify-content: space-between;
+  gap: 4px; padding: 8px 12px;
+  border-radius: var(--r-xl);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur)) saturate(170%); -webkit-backdrop-filter: blur(var(--blur)) saturate(170%);
+  border: 1px solid var(--glass-stroke);
+  box-shadow: 0 18px 48px -20px var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  overflow: visible;
+}
+.navdock .tab {
+  flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  border-radius: var(--r-lg); position: relative;
+  color: var(--ink-ghost); font-size: 0.62rem; font-weight: 600;
+  transition: color var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
+}
+.navdock .tab .tab-ico { width: 26px; height: 26px; display: grid; place-items: center; transition: transform var(--dur) var(--ease-spring); }
+.navdock .tab .tab-ico svg { width: 23px; height: 23px; stroke: currentColor; fill: none; transition: fill var(--dur), stroke var(--dur); }
+.navdock .tab:active { transform: scale(0.9); }
+.navdock .tab.active { color: var(--ink); }
+/* stateful nav: the active tab gets a pill behind the icon AND the word */
+.navdock .tab.active::before {
+  content: ""; position: absolute; inset: 3px 4px; border-radius: var(--r-lg); z-index: -1;
+  background: linear-gradient(120deg, rgba(var(--a1-rgb), 0.36), rgba(var(--a2-rgb), 0.28));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  animation: tab-fill var(--dur) var(--ease-spring);
+}
+@keyframes tab-fill { from { opacity: 0; transform: scale(0.82); } to { opacity: 1; transform: none; } }
+.navdock .tab.active .tab-ico { transform: translateY(-1px) scale(1.04); animation: tab-pop var(--dur) var(--ease-spring); }
+.navdock .tab.active .tab-ico svg { fill: rgba(var(--a1-rgb), 0.28); stroke: var(--ink); }
+@keyframes tab-pop { 0% { transform: translateY(-1px) scale(0.92); } 60% { transform: translateY(-2px) scale(1.12); } 100% { transform: translateY(-1px) scale(1.04); } }
+
+/* the center orb (opens the bloom of secondary features) — vertically centered
+   in the bar and slightly larger than the tabs, so it reads as the hub without
+   floating off and looking misaligned. */
+.navorb {
+  flex: 0 0 auto; align-self: center; position: relative;
+  width: 56px; height: 56px; border-radius: 50%; margin: 0 4px;
+  display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, var(--a1), var(--a2));
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  box-shadow: 0 10px 26px -8px rgba(var(--a2-rgb), 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: transform var(--dur) var(--ease-spring), box-shadow var(--dur);
+}
+.navorb::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%;
+  border: 1.5px solid rgba(var(--a1-rgb), 0.45); pointer-events: none;
+  animation: orb-pulse 2.8s var(--ease-out) infinite;
+}
+@keyframes orb-pulse { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.36); opacity: 0; } }
+.navorb:active { transform: scale(0.92); }
+.navorb.open { transform: rotate(90deg); box-shadow: 0 12px 30px -6px rgba(var(--a2-rgb), 0.85), 0 0 0 4px rgba(var(--a1-rgb), 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+.navorb.open::after { animation: none; opacity: 0; }
+.navorb-ico { width: 25px; height: 25px; display: grid; place-items: center; transition: transform var(--dur) var(--ease-spring); }
+.navorb-ico svg { width: 25px; height: 25px; stroke: currentColor; fill: none; }
+
+.navmenu-host { position: fixed; inset: 0; z-index: 75; display: none; pointer-events: none; }
+.navmenu-host.mounted { display: block; pointer-events: auto; }
+.navmenu-scrim { position: absolute; inset: 0; background: rgba(2, 3, 10, 0.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); opacity: 0; transition: opacity var(--dur) var(--ease-out); }
+body.theme-daylight .navmenu-scrim { background: rgba(214, 220, 240, 0.55); }
+.navmenu-host.open .navmenu-scrim { opacity: 1; }
+
+/* bloom origin sits exactly over the centered orb (bar bottom 10 + half height) */
+.navbloom { position: absolute; left: 50%; bottom: calc(var(--safe-b) + 48px); width: 0; height: 0; }
+.navbloom-item {
+  position: absolute; left: 0; top: 0;
+  transform: translate(-50%, -50%) scale(0.3); opacity: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  transition: transform var(--dur-slow) var(--ease-spring), opacity var(--dur);
+  will-change: transform, opacity;
+}
+.navmenu-host.open .navbloom-item {
+  transform: translate(-50%, -50%) translate(var(--bx), var(--by)) scale(1); opacity: 1;
+}
+.navmenu-host.open .navbloom-item.focus {
+  transform: translate(-50%, -50%) translate(var(--bx), var(--by)) scale(1.08); z-index: 2;
+}
+.nb-ico {
+  width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; color: var(--ink);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--blur)) saturate(170%); -webkit-backdrop-filter: blur(var(--blur)) saturate(170%);
+  border: 1px solid var(--glass-stroke);
+  box-shadow: 0 12px 26px -10px var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition: background var(--dur), border-color var(--dur), box-shadow var(--dur), color var(--dur);
+}
+.nb-ico svg { width: 22px; height: 22px; stroke: currentColor; fill: none; }
+.navbloom-item.focus .nb-ico {
+  background: linear-gradient(135deg, var(--a1), var(--a2)); color: #fff; border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 16px 34px -8px rgba(var(--a2-rgb), 0.75), 0 0 0 4px rgba(var(--a1-rgb), 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.navbloom-item:active .nb-ico { transform: scale(0.9); }
+.nb-lbl {
+  font-size: 0.68rem; font-weight: 600; color: var(--ink); white-space: nowrap;
+  max-width: 80px; overflow: hidden; text-overflow: ellipsis; text-align: center;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65); letter-spacing: -0.01em;
+}
+.navbloom-item { gap: 5px; }
+body.theme-daylight .nb-lbl { text-shadow: 0 1px 6px rgba(255, 255, 255, 0.8); }
+.bloom-hint {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  top: calc(var(--safe-t) + 18px);
+  color: var(--ink-faint); white-space: nowrap; letter-spacing: 0.03em;
+  opacity: 0; transition: opacity var(--dur) 0.18s;
+}
+.navmenu-host.open .bloom-hint { opacity: 0.8; }
+
+/* ---------------------------------------------------------------------------
+   4. COACH TOUR — a tiny docked card. The live app shows THROUGH the host
+   (pointer-events: none) so the feature being described is fully visible/usable.
+   --------------------------------------------------------------------------- */
+.coach-host { position: fixed; inset: 0; z-index: 70; pointer-events: none; display: none; }
+.coach-host.coach-open, .coach-host.intro-open { display: block; }
+.coach-host.intro-open { pointer-events: auto; }
+
+.coach {
+  pointer-events: auto;
+  position: absolute; left: 50%;
+  bottom: calc(var(--tabbar-h) + var(--safe-b) + 22px);
+  width: min(94vw, 440px);
+  border-radius: var(--r-lg);
+  padding: 14px 16px 16px;
+  box-shadow: 0 24px 64px -18px rgba(0, 0, 0, 0.72);
+  animation: coach-in var(--dur) var(--ease-spring) both;
+}
+@keyframes coach-in { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.coach { transform: translateX(-50%); }
+.coach-progress { height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); overflow: hidden; margin-bottom: 12px; }
+.coach-progress > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--a1), var(--a2)); transition: width 0.45s var(--ease-out); }
+.coach-row { display: flex; align-items: center; gap: 12px; }
+.coach-badge {
+  width: 40px; height: 40px; border-radius: 13px; flex: 0 0 auto; display: grid; place-items: center; color: var(--a1);
+  background: linear-gradient(135deg, rgba(var(--a1-rgb), 0.22), rgba(var(--a2-rgb), 0.12));
+  border: 1px solid var(--glass-stroke-soft);
+}
+.coach-body { flex: 1 1 auto; min-width: 0; }
+.coach-eyebrow { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-ghost); font-weight: 700; }
+.coach-title { font-size: 1.2rem; line-height: 1.15; margin-top: 1px; }
+.coach-close { width: 30px; height: 30px; flex: 0 0 auto; border-radius: 999px; display: grid; place-items: center; color: var(--ink-faint); background: var(--glass-bg-faint); border: 1px solid var(--glass-stroke-soft); }
+.coach-close:active { transform: scale(0.9); }
+.coach-desc { margin: 11px 2px 14px; font-size: 0.92rem; line-height: 1.5; color: var(--ink-soft); }
+.coach-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.coach-hint { flex: 1 1 auto; line-height: 1.35; }
+/* interactive spotlight — pulses over the nav element a step points at */
+.coach-spot {
+  position: fixed; width: 64px; height: 64px; border-radius: 50%;
+  transform: translate(-50%, -50%); pointer-events: none; z-index: 71;
+  border: 2.5px solid rgba(var(--a1-rgb), 0.9);
+  box-shadow: 0 0 0 6px rgba(var(--a1-rgb), 0.18), 0 0 22px 4px rgba(var(--a1-rgb), 0.5);
+  animation: coach-spot 1.3s var(--ease-out) infinite;
+}
+@keyframes coach-spot {
+  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   5. FIRST-RUN INTRO — a short full-screen splash before the coached tour.
+   --------------------------------------------------------------------------- */
+.intro-scrim { position: absolute; inset: 0; background: rgba(2, 3, 10, 0.62); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+body.theme-daylight .intro-scrim { background: rgba(214, 220, 240, 0.55); }
+.intro-panel {
+  pointer-events: auto;
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(92vw, 460px); max-height: 88dvh; overflow-y: auto;
+  border-radius: var(--r-xl); padding: 34px 26px 26px;
+  display: flex; flex-direction: column; align-items: center;
+  box-shadow: 0 28px 80px -22px rgba(0, 0, 0, 0.7);
+}
+.intro-badge {
+  width: 76px; height: 76px; border-radius: 24px; margin: 0 auto 22px; display: grid; place-items: center; color: var(--a1);
+  background: linear-gradient(135deg, rgba(var(--a1-rgb), 0.2), rgba(var(--a2-rgb), 0.1));
+  border: 1px solid var(--glass-stroke-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 10px 30px -12px rgba(var(--a1-rgb), 0.5);
+}
+.intro-panel .btn-block { width: 100%; }
+
+/* ---------------------------------------------------------------------------
+   6. DANGER BUTTON — destructive actions (delete account).
+   --------------------------------------------------------------------------- */
+.btn-danger {
+  background: linear-gradient(120deg, rgba(255, 138, 156, 0.20), rgba(255, 138, 156, 0.10));
+  border: 1px solid rgba(255, 138, 156, 0.5);
+  color: var(--bad);
+}
+.btn-danger:active { filter: brightness(1.12); }
+
+/* ---------------------------------------------------------------------------
+   7. MOTION — smoother page transitions + lots of small, alive micro-animations.
+   --------------------------------------------------------------------------- */
+/* page container fades only (animating transform on a box full of backdrop-blur
+   cards makes iOS WebKit flash gray — keep the container opacity-only). */
+.page-enter { opacity: 0; }
+.page-enter.page-in { opacity: 1; transition: opacity var(--dur) var(--ease-out); }
+/* a gentle, staggered float-up for each card on the page (per-card translateY) */
+.stagger > * { animation: card-rise var(--dur-slow) var(--ease-spring) both; }
+@keyframes card-rise { from { opacity: 0; transform: translateY(13px); } to { opacity: 1; transform: none; } }
+.stagger > *:nth-child(1){animation-delay:.02s}.stagger > *:nth-child(2){animation-delay:.06s}.stagger > *:nth-child(3){animation-delay:.10s}.stagger > *:nth-child(4){animation-delay:.14s}.stagger > *:nth-child(5){animation-delay:.18s}.stagger > *:nth-child(6){animation-delay:.22s}.stagger > *:nth-child(7){animation-delay:.26s}.stagger > *:nth-child(8){animation-delay:.30s}.stagger > *:nth-child(9){animation-delay:.34s}.stagger > *:nth-child(10){animation-delay:.38s}.stagger > *:nth-child(11){animation-delay:.42s}
+/* tappable cards get a soft press; web hover gives a tiny lift */
+.glass-card { transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur) var(--ease-out); }
+.glass-card:active, .hub-tile:active, .tile:active, .lrow.tap:active { transform: scale(0.985); }
+@media (hover: hover) {
+  .hub-tile:hover, .glass-card.sheen:hover, .tile:hover { transform: translateY(-2px); }
+  .btn:hover { filter: brightness(1.06); }
+}
+/* primary buttons get a slow living sheen */
+.btn-primary { background-size: 160% 160%; animation: sheen-drift 7s var(--ease-in-out) infinite; }
+@keyframes sheen-drift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+/* ---------------------------------------------------------------------------
+   8. CONDENSING HEADER / BREADCRUMB — title shrinks, section name surfaces.
+   --------------------------------------------------------------------------- */
+.nav-crumb {
+  position: absolute; left: 50%; transform: translateX(-50%) translateY(6px);
+  font-weight: 700; font-size: 0.98rem; letter-spacing: -0.01em; color: var(--ink);
+  opacity: 0; pointer-events: none; transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-spring);
+  max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+body.scrolled .nav-crumb { opacity: 1; transform: translateX(-50%) translateY(0); }
+body.scrolled .brand { opacity: 0; transform: translateX(-6px); transition: opacity var(--dur), transform var(--dur); }
+.brand { transition: opacity var(--dur), transform var(--dur); }
+body.scrolled .page-head .page-title { transform: scale(0.94); transform-origin: left; transition: transform var(--dur) var(--ease-out); }
+.page-head { transition: opacity var(--dur); }
+
+/* ---------------------------------------------------------------------------
+   9. CONTEXTUAL TIME-OF-DAY WASH — a warm/cool overlay following the clock.
+   --------------------------------------------------------------------------- */
+.ambient::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  opacity: 0.5; mix-blend-mode: soft-light;
+  transition: background 2s var(--ease-in-out), opacity 2s var(--ease-in-out);
+  background: radial-gradient(120% 80% at 50% 0%, rgba(120,150,255,0.10), transparent 60%);
+}
+body[data-tod="night"] .ambient::after { background: radial-gradient(130% 90% at 50% 110%, rgba(255,150,70,0.20), rgba(120,40,90,0.10) 55%, transparent 75%); opacity: 0.7; }
+body[data-tod="dawn"]  .ambient::after { background: radial-gradient(120% 90% at 30% 0%, rgba(255,180,140,0.18), rgba(150,160,255,0.10) 55%, transparent 75%); opacity: 0.6; }
+body[data-tod="day"]   .ambient::after { background: radial-gradient(120% 80% at 50% 0%, rgba(120,180,255,0.16), transparent 60%); opacity: 0.55; }
+body[data-tod="dusk"]  .ambient::after { background: radial-gradient(120% 90% at 70% 0%, rgba(255,140,110,0.16), rgba(120,90,180,0.10) 55%, transparent 75%); opacity: 0.6; }
+
+/* ---------------------------------------------------------------------------
+   10. MOVABLE WIDGETS — iOS-style jiggle + drag-to-reorder on the home grid.
+   --------------------------------------------------------------------------- */
+.dash-widget { transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur); touch-action: pan-y; }
+.dash-grid.arranging .dash-widget { animation: jiggle 0.34s var(--ease-in-out) infinite; }
+.dash-grid.arranging .dash-widget:nth-child(2n) { animation-delay: -0.17s; }
+.dash-grid.arranging .dash-widget::before {
+  content: ""; position: absolute; inset: 0; border-radius: var(--r-lg); z-index: 5;
+  border: 1.5px dashed rgba(var(--a1-rgb), 0.5); pointer-events: none;
+}
+.dash-grid.arranging .dash-widget { position: relative; }
+.dash-widget.dragging { animation: none !important; transform: scale(1.035); z-index: 30; box-shadow: 0 24px 60px -16px rgba(0,0,0,0.6); opacity: 0.96; }
+@keyframes jiggle { 0%,100% { transform: rotate(-0.7deg); } 50% { transform: rotate(0.7deg); } }
+.arrange-bar {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--tabbar-h) + var(--safe-b) + 22px); z-index: 78;
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 12px 10px 18px; border-radius: var(--r-pill);
+  box-shadow: 0 18px 50px -16px rgba(0,0,0,0.6);
+  animation: coach-in var(--dur) var(--ease-spring) both;
+}
+
+/* ---------------------------------------------------------------------------
+   11. VOICE + SOUNDS — read-aloud / dictation buttons and the soundscape cards.
+   --------------------------------------------------------------------------- */
+.tts-btn, .mic-btn { width: 34px; height: 34px; flex: 0 0 auto; }
+/* the read-aloud speaker has NO circle/background — just the glyph, so it never
+   covers nearby symbols. */
+.tts-btn { background: none; border: none; box-shadow: none; color: var(--ink-faint); }
+.tts-btn:active { transform: scale(0.88); background: none; }
+.tts-btn.on { color: var(--a1); background: none; }
+.mic-btn.on { color: #fff; background: linear-gradient(135deg, var(--a4), var(--bad)); animation: mic-pulse 1.1s ease-in-out infinite; }
+@keyframes mic-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,138,156,0.5); } 50% { box-shadow: 0 0 0 7px rgba(255,138,156,0); } }
+
+.snd-card { transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur); position: relative; }
+.snd-card:active { transform: scale(0.95); }
+.snd-card.on {
+  border-color: rgba(255,255,255,0.5);
+  box-shadow: 0 0 0 1.5px var(--snd-tint, var(--a1)), 0 14px 30px -10px var(--snd-tint, var(--a1)), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+.snd-card.on::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--snd-tint) 22%, transparent), transparent 70%);
+}
+
+/* ---------------------------------------------------------------------------
+   12. VALUE BOXES — every value the exact same size, in a clean 2-up grid.
+   --------------------------------------------------------------------------- */
+.val-box {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center; padding: var(--s4) var(--s3); border-radius: var(--r-lg);
+  min-height: 172px; justify-content: center;
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.val-box:active { transform: scale(0.97); }
+.val-box-name {
+  font-size: 0.95rem; line-height: 1.2; min-height: 2.4em;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* onboarding: uniform value boxes + color swatches */
+.onb-val {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  min-height: 80px; padding: 10px 6px; border-radius: var(--r-md); text-align: center;
+  background: var(--glass-bg-faint); border: 1.5px solid var(--glass-stroke-soft); color: var(--ink-soft);
+  transition: transform var(--dur-fast) var(--ease-spring), background var(--dur), border-color var(--dur), color var(--dur);
+}
+.onb-val.active { background: linear-gradient(135deg, rgba(var(--a1-rgb), 0.4), rgba(var(--a2-rgb), 0.4)); border-color: rgba(255, 255, 255, 0.4); color: var(--ink); }
+.onb-val:active, .onb-swatch:active { transform: scale(0.94); }
+.onb-swatch { transition: transform var(--dur-fast) var(--ease-spring); }
+
+/* one-time swipe teaching cue */
+.swipe-hint {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--tabbar-h) + var(--safe-b) + 26px); z-index: 78;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 18px; border-radius: var(--r-pill);
+  box-shadow: 0 16px 40px -14px rgba(0,0,0,0.6);
+  animation: pop var(--dur) var(--ease-spring) both;
+}
+.swipe-hint.out { animation: fade var(--dur) reverse both; }
+.swipe-hint .sh-arrow { font-size: 1.4rem; font-weight: 700; color: var(--a1); animation: sh-nudge 1.1s ease-in-out infinite; }
+.swipe-hint .sh-arrow:last-child { animation-delay: 0.55s; }
+@keyframes sh-nudge { 0%,100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(-4px); opacity: 1; } }
+.swipe-hint .sh-arrow:last-child { animation-name: sh-nudge-r; }
+@keyframes sh-nudge-r { 0%,100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(4px); opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary { animation: none; }
+  .navorb::after { animation: none; }
+  .dash-grid.arranging .dash-widget { animation: none; }
+  .mic-btn.on { animation: none; }
+  .swipe-hint .sh-arrow { animation: none; }
+}

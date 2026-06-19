@@ -237,6 +237,8 @@
   // -------------------------------------------------------------------------
   // Main render
   // -------------------------------------------------------------------------
+  let _jourTab = 'write'; // 'write' | 'mirror' — Journal now absorbs The Mirror
+
   function render(root) {
     // ---- page header ----
     root.appendChild(
@@ -246,14 +248,25 @@
       ])
     );
 
+    // Write your entries, or step into The Mirror (language patterns) — one place.
+    if (window.Mirror) {
+      root.appendChild(UI.el('div', { style: { marginBottom: 'var(--s4)' } }, [
+        UI.segmented([
+          { value: 'write', label: t('jour.tabWrite') },
+          { value: 'mirror', label: t('mir.title') },
+        ], _jourTab, (v) => { _jourTab = v; Anchor.refresh(); }),
+      ]));
+    }
+
     const col = UI.el('div', { class: 'col gap4 stagger' });
     root.appendChild(col);
 
-    // ---- new entry card ----
-    col.appendChild(newEntryCard());
-
-    // ---- entries list ----
-    col.appendChild(entriesSection());
+    if (_jourTab === 'mirror' && window.Mirror) {
+      Mirror.renderBody(col);
+    } else {
+      col.appendChild(newEntryCard());
+      col.appendChild(entriesSection());
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -262,7 +275,7 @@
   function newEntryCard() {
     const card = UI.el('div', { class: 'glass-card card col gap3' });
 
-    const header = UI.el('div', { class: 'row between' }, [
+    const header = UI.el('div', { class: 'row between', style: { alignItems: 'center' } }, [
       UI.el('div', { class: 'b big' }, t('jour.newEntry')),
     ]);
     card.appendChild(header);
@@ -289,14 +302,19 @@
     });
     card.appendChild(textarea);
 
-    // Word count
-    const wcEl = UI.el('div', { class: 'tiny soft', style: { minHeight: '18px' } }, '');
+    // Word count + dictation (speech-to-text) where supported
+    const wcEl = UI.el('div', { class: 'tiny soft' }, '');
     function updateWc() {
       const n = wordCount(textarea.value);
       wcEl.textContent = n > 0 ? t('jour.wordCount', { n }) : '';
     }
     textarea.addEventListener('input', updateWc);
-    card.appendChild(wcEl);
+    const wcRow = UI.el('div', { class: 'row between', style: { alignItems: 'center', minHeight: '20px' } }, [wcEl]);
+    if (window.Speech && Speech.sttSupported()) {
+      const mic = Speech.micButton(textarea, { onInput: updateWc });
+      if (mic) wcRow.appendChild(mic);
+    }
+    card.appendChild(wcRow);
 
     // Prompt section (initially hidden)
     const promptsWrap = UI.el('div', { class: 'col gap2', style: { display: 'none' } });

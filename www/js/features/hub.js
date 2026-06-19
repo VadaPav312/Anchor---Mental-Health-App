@@ -12,18 +12,15 @@
   const GROUPS = [
     { key: 'reflect', icon: 'mirror', items: [
       { id: 'journal', stat: () => Store.journal.count() + ' ' + (Store.journal.count() === 1 ? t('jour.entries', { count: 1 }).replace(/^\d+\s*/, '') : t('jour.entries', { count: 2 }).replace(/^\d+\s*/, '')) },
-      { id: 'mirror' },
-      { id: 'timeline' },
+      { id: 'journey', stat: () => Store.streak() > 1 ? '🔥' + Store.streak() : '' },
       { id: 'checkin', stat: () => Store.derive.dayMood(Store.today()) ? '✓' : '' },
     ] },
     { key: 'grow', icon: 'leaf', items: [
       { id: 'experiments', stat: () => { const a = Store.derive.activeExperiment(); return a ? '●' : ''; } },
-      { id: 'review' },
-      { id: 'garden', stat: () => Store.streak() > 1 ? '🔥' + Store.streak() : '' },
       { id: 'values' },
     ] },
     { key: 'resource', icon: 'wind', items: [
-      { id: 'toolkit' },
+      { id: 'calm' },
       { id: 'energy', stat: () => { const e = Store.derive.energyToday(); return e.count ? UI.fmt.signed(e.net) : ''; } },
       { id: 'sleep', stat: () => { const s = Store.derive.lastSleep(); return s ? s.score : ''; } },
     ] },
@@ -77,6 +74,29 @@
     ]);
   }
 
+  // Universal feature search — type to jump to any screen, in any language.
+  function searchBox() {
+    const wrap = E('div', { style: { marginTop: '2px' } });
+    const input = E('input', { class: 'input', placeholder: t('hub.searchPlaceholder'), autocapitalize: 'none' });
+    const results = E('div', { class: 'col gap2', style: { marginTop: '8px' } });
+    function update() {
+      const q = (input.value || '').trim().toLowerCase();
+      UI.clear(results);
+      if (!q) return;
+      const seen = {};
+      const hits = Anchor.views.filter(v => v.id !== 'guide' && v.id !== 'home' && v.labelKey && !seen[v.id] && (seen[v.id] = 1) && t(v.labelKey).toLowerCase().indexOf(q) !== -1).slice(0, 6);
+      if (!hits.length) { results.appendChild(E('div', { class: 'tiny muted', style: { padding: '4px 2px' } }, t('hub.noResults'))); return; }
+      hits.forEach(v => results.appendChild(E('button', { class: 'lrow tap glass-card', style: { width: '100%', padding: '10px 14px' }, onclick: () => Anchor.go(v.id) }, [
+        UI.frag('<span class="lr-ico"><span style="width:18px;height:18px;display:inline-flex;color:var(--a1)">' + Icons.get(v.icon) + '</span></span>'),
+        E('div', { class: 'lr-body' }, [E('div', { class: 'lr-title' }, t(v.labelKey))]),
+        UI.frag('<span class="lr-meta" style="width:18px"><span style="width:16px;height:16px;display:inline-flex">' + Icons.get('chevron') + '</span></span>'),
+      ])));
+    }
+    input.addEventListener('input', update);
+    wrap.append(input, results);
+    return wrap;
+  }
+
   function render(root) {
     root.appendChild(E('div', { class: 'page-head' }, [
       E('div', { class: 'eyebrow' }, t('hub.sub')),
@@ -87,23 +107,26 @@
     root.appendChild(col);
 
     col.appendChild(header());
+    col.appendChild(searchBox());
     GROUPS.forEach(g => { const el = group(g); if (el) col.appendChild(el); });
 
-    // account & settings row
+    // account & settings row — icons rendered at a clean fixed size inside the
+    // box (stretching the detailed gear to fill 38px made it look glitched).
+    const lrIcon = (name) => UI.frag(`<span class="lr-ico"><span style="width:20px;height:20px;display:inline-flex;color:var(--a1)">${Icons.get(name)}</span></span>`);
     col.appendChild(E('div', { class: 'col gap2', style: { marginTop: '6px' } }, [
       E('div', { class: 'eyebrow', style: { margin: '0 4px 4px' } }, t('hub.account')),
       window.Guide ? E('button', { class: 'lrow tap glass-card', style: { width: '100%', padding: '12px 16px' }, onclick: () => Guide.start() }, [
-        UI.frag(`<span class="lr-ico">${Icons.get('spark')}</span>`),
+        lrIcon('spark'),
         E('div', { class: 'lr-body' }, [E('div', { class: 'lr-title' }, t('tour.again'))]),
-        UI.frag(`<span class="lr-meta" style="width:18px">${Icons.get('chevron')}</span>`),
+        UI.frag(`<span class="lr-meta" style="width:18px"><span style="width:18px;height:18px;display:inline-flex">${Icons.get('chevron')}</span></span>`),
       ]) : null,
       E('button', { class: 'lrow tap glass-card', style: { width: '100%', padding: '12px 16px' }, onclick: () => Anchor.go('settings') }, [
-        UI.frag(`<span class="lr-ico">${Icons.get('settings')}</span>`),
+        lrIcon('settings'),
         E('div', { class: 'lr-body' }, [E('div', { class: 'lr-title' }, t('set.title'))]),
-        UI.frag(`<span class="lr-meta" style="width:18px">${Icons.get('chevron')}</span>`),
+        UI.frag(`<span class="lr-meta" style="width:18px"><span style="width:18px;height:18px;display:inline-flex">${Icons.get('chevron')}</span></span>`),
       ]),
       window.Auth ? E('button', { class: 'lrow tap glass-card', style: { width: '100%', padding: '12px 16px' }, onclick: () => Auth.signOut() }, [
-        UI.frag(`<span class="lr-ico">${Icons.get('lock')}</span>`),
+        lrIcon('lock'),
         E('div', { class: 'lr-body' }, [E('div', { class: 'lr-title' }, t('auth.signOut'))]),
       ]) : null,
     ]));

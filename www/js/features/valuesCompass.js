@@ -40,6 +40,16 @@
     return streak;
   }
 
+  // How many of the last 7 days this value was lived (progress toward its target).
+  function weeklyLived(valueId) {
+    let n = 0;
+    allChecks().forEach(c => {
+      if (Store.diffDays(today(), c.date) < 7 && c.lived && c.lived.includes(valueId)) n++;
+    });
+    return n;
+  }
+  function valueTarget(v) { return (v && v.target) || 4; }
+
   // Compute alignment stats per value over all check history.
   // Returns { id, name, livedDays, crowdedDays, totalDays, livedPct, crowdedPct }
   function alignmentStats() {
@@ -88,7 +98,10 @@
     const vals = Store.values.all();
 
     const hdr = UI.el('div', { class: 'row between gap3', style: { alignItems: 'center' } }, [
-      UI.el('div', { class: 'section-label b' }, t('val.myValues')),
+      UI.el('div', {}, [
+        UI.el('div', { class: 'section-label b' }, t('val.myValues')),
+        vals.length ? UI.el('div', { class: 'tiny soft mt1' }, t('val.targetsSub')) : null,
+      ]),
       vals.length
         ? UI.btn(t('val.editValues'), { class: 'btn-ghost btn-sm', icon: 'spark', onClick: () => openEditSheet(section) })
         : null,
@@ -98,29 +111,34 @@
     if (!vals.length) {
       section.appendChild(UI.empty('🧭', null, t('val.noChecks')));
     } else {
-      const list = UI.el('div', { class: 'col gap2' });
-      vals.forEach(v => list.appendChild(valueChip(v, section)));
-      section.appendChild(list);
+      // uniform 2-column grid — every value box is exactly the same size
+      const grid = UI.el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--s3)' } });
+      vals.forEach(v => grid.appendChild(valueBox(v, section)));
+      section.appendChild(grid);
     }
 
     // Add value input
     section.appendChild(addValueRow(section));
   }
 
-  function valueChip(v, section) {
+  // A fixed-size value "box": name, a ring of weekly progress toward its target,
+  // and an on-track / keep-going status. Tap to edit (rename, why, target).
+  function valueBox(v, section) {
+    const target = valueTarget(v);
+    const lived = weeklyLived(v.id);
+    const onTrack = lived >= target;
     const streak = valueStreak(v.id);
-    const card = UI.el('div', { class: 'glass-card card row between gap3', style: { alignItems: 'flex-start' } }, [
-      UI.el('div', { class: 'grow', style: { minWidth: 0 } }, [
-        UI.el('div', { class: 'b', style: { fontSize: '1rem' } }, v.name),
-        v.why
-          ? UI.el('div', { class: 'tiny soft mt1', style: { lineHeight: '1.5' } }, v.why)
-          : UI.el('div', { class: 'tiny soft mt1' }, t('val.valueWhy')),
-        streak >= 2
-          ? UI.el('div', { class: 'tiny mt2', style: { color: 'var(--a1)' } }, t('val.streak', { n: streak, value: v.name }))
-          : null,
-      ]),
+    const ring = UI.frag(UI.ring(lived, target, {
+      size: 62, stroke: 7, text: lived + '/' + target,
+      color: onTrack ? ['var(--a3)', 'var(--a1)'] : ['var(--a1)', 'var(--a2)'],
+    }));
+    return UI.el('button', { class: 'glass-card val-box', onclick: () => openEditSheet(section) }, [
+      UI.el('div', { class: 'val-box-name b' }, v.name),
+      ring,
+      UI.el('div', { class: 'tiny', style: { color: onTrack ? 'var(--good)' : 'var(--ink-faint)', fontWeight: '600' } },
+        onTrack ? '✓ ' + t('val.onTrack') : t('val.weekGoal', { n: target })),
+      streak >= 2 ? UI.el('div', { class: 'tiny', style: { color: 'var(--a1)' } }, (streak >= 7 ? '🏅 ' : '🔥 ') + streak) : null,
     ]);
-    return card;
   }
 
   function addValueRow(section) {
@@ -190,12 +208,23 @@
         nameInput.addEventListener('blur', saveField);
         whyInput.addEventListener('blur', saveField);
 
+        // weekly target — how many days a week the user wants to live this value
+        const targetSeg = UI.segmented(
+          [2, 3, 4, 5, 7].map(n => ({ value: String(n), label: String(n) })),
+          String(valueTarget(v)),
+          (val) => { Store.values.update(v.id, { target: +val }); UI.haptic('light'); }
+        );
+
         rows.appendChild(UI.el('div', { class: 'glass-card card col gap2' }, [
           UI.el('div', { class: 'row gap2', style: { alignItems: 'center' } }, [
             nameInput,
             removeBtn,
           ]),
           whyInput,
+          UI.el('div', { class: 'row between gap2', style: { alignItems: 'center', marginTop: '2px' } }, [
+            UI.el('div', { class: 'tiny soft' }, t('val.targetLabel')),
+            targetSeg,
+          ]),
         ]));
       });
     }
@@ -493,6 +522,70 @@
     section.appendChild(reflectBtn);
   }
 
+  // ---- AI value nudge — a concrete small way to live a value you're behind on
+  function renderValueNudge(root) {
+    const vals = Store.values.all();
+    if (!vals.length || !(window.LLM && LLM.configured && LLM.configured())) return;
+    // pick the value furthest behind its weekly target
+    const behind = vals
+      .map(v => ({ v, deficit: valueTarget(v) - weeklyLived(v.id) }))
+      .filter(x => x.deficit > 0)
+      .sort((a, b) => b.deficit - a.deficit)[0];
+    if (!behind) return;
+    const v = behind.v;
+
+    const card = UI.el('div', { class: 'glass-card card', style: { borderColor: 'rgba(var(--a1-rgb),0.35)' } });
+    root.appendChild(card);
+
+    function paintIdle() {
+      UI.clear(card);
+      card.appendChild(UI.el('div', { class: 'row', style: { gap: '7px', alignItems: 'center', color: 'var(--a1)', fontWeight: '700', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.1em' } }, [
+        UI.frag('<span style="width:15px;height:15px;display:inline-flex">' + Icons.get('spark') + '</span>'),
+        UI.el('span', {}, t('val.nudgeTitle')),
+      ]));
+      card.appendChild(UI.el('div', { class: 'small soft', style: { marginTop: 'var(--s2)', lineHeight: '1.5' } }, t('val.nudgeBehind', { value: v.name, n: behind.deficit })));
+      card.appendChild(UI.btn(t('val.nudgeCta', { value: v.name }), { class: 'btn-primary btn-block', icon: 'spark', onClick: gen, style: {} }));
+    }
+    const cacheKey = 'session.valueNudge.' + v.id;
+    const cached = Store.get(cacheKey, null);
+
+    async function gen() {
+      UI.clear(card);
+      card.appendChild(UI.el('div', { class: 'row', style: { gap: 'var(--s2)', alignItems: 'center' } }, [UI.thinking(), UI.el('span', { class: 'small soft' }, t('val.nudgeThinking'))]));
+      if (UI.startHum) UI.startHum();
+      try {
+        const reply = await LLM.ask(prompt(), { temperature: 0.85 });
+        Store.set(cacheKey, { date: today(), value: v.name, text: reply });
+        paintIdea(reply);
+      } catch (e) { paintIdle(); UI.toast(t('app.offline'), 'bad'); }
+      finally { if (UI.stopHum) UI.stopHum(); }
+    }
+    function prompt() {
+      return Store.profile.name() + ' values "' + v.name + '"' + (v.why ? ' (because: ' + v.why + ')' : '') +
+        ' but has lived it only ' + weeklyLived(v.id) + ' of their target ' + valueTarget(v) + ' days this week. ' +
+        'Suggest ONE small, concrete, ~10-minute thing they could actually do TODAY to live this value. ' +
+        'One warm sentence, specific and doable, written as a gentle invitation. No preamble, no quotes.';
+    }
+    function paintIdea(text) {
+      UI.clear(card);
+      card.appendChild(UI.el('div', { class: 'row between', style: { alignItems: 'center' } }, [
+        UI.el('div', { class: 'eyebrow' }, t('val.nudgeFor', { value: v.name })),
+        UI.frag('<span style="width:18px;height:18px;display:inline-flex;color:var(--a1)">' + Icons.get('compass') + '</span>'),
+      ]));
+      card.appendChild(UI.el('div', { style: { marginTop: 'var(--s2)', lineHeight: '1.6' } }, text));
+      const row = UI.el('div', { class: 'row', style: { gap: 'var(--s2)', marginTop: 'var(--s3)', alignItems: 'center' } }, [
+        UI.el('button', { class: 'btn btn-ghost btn-sm', onclick: gen }, t('val.nudgeAnother')),
+      ]);
+      if (window.Speech && Speech.ttsSupported() && Store.get('settings.tts', true) !== false) {
+        const rb = Speech.readButton(() => text); if (rb) row.appendChild(rb);
+      }
+      card.appendChild(row);
+    }
+
+    if (cached && cached.date === today() && cached.value === v.name) paintIdea(cached.text);
+    else paintIdle();
+  }
+
   // ---- 6. Low-mood nudge ----------------------------------------------------
 
   function renderLowMoodNudge(root) {
@@ -552,6 +645,9 @@
     const myValuesSection = UI.el('div', { 'data-section': 'values' });
     grid.appendChild(myValuesSection);
     renderMyValues(myValuesSection);
+
+    // AI nudge — a concrete way to live a value you're behind on
+    renderValueNudge(grid);
 
     // 7. Streaks
     renderStreaks(grid);

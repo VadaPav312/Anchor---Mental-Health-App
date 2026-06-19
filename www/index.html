@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/anchor.css" />
   <link rel="stylesheet" href="css/weather.css" />
   <link rel="stylesheet" href="css/extras.css" />
+  <link rel="stylesheet" href="css/refresh.css" />
 </head>
 <body class="theme-aurora">
   <!-- animated ambient background — the "place" the app lives in -->
@@ -20,6 +21,7 @@
     <div class="ambient-orb orb-a"></div>
     <div class="ambient-orb orb-b"></div>
     <div class="ambient-orb orb-c"></div>
+    <div class="ambient-doodles"></div>
     <div class="ambient-grain"></div>
   </div>
 
@@ -30,6 +32,7 @@
         <span class="brand-mark" aria-hidden="true"></span>
         <span class="brand-name">Anchor</span>
       </div>
+      <div class="nav-crumb" id="navCrumb" aria-hidden="true"></div>
       <div class="topbar-actions">
         <button class="icon-btn lifeline-btn" id="lifelineBtn" aria-label="Support">♥</button>
         <button class="icon-btn" id="settingsBtn" aria-label="Settings">⋯</button>
@@ -40,12 +43,14 @@
 
     <main id="view" class="view" aria-live="polite"></main>
 
-    <nav class="tabbar glass" id="tabbar" aria-label="Primary"></nav>
+    <nav class="navdock" id="tabbar" aria-label="Primary"></nav>
   </div>
 
   <div id="toast-host" class="toast-host" aria-live="assertive"></div>
   <div id="modal-host" class="modal-host"></div>
   <div id="sheet-host" class="sheet-host"></div>
+  <div id="navmenu-host" class="navmenu-host"></div>
+  <div id="coach-host" class="coach-host"></div>
 
   <!-- ===== load order matters ===== -->
   <!-- integration config (non-secret ids) -->
@@ -83,6 +88,7 @@
   <script src="js/ui.js"></script>
   <script src="js/gamify.js"></script>
   <script src="js/native.js"></script>
+  <script src="js/speech.js"></script>
   <script src="js/llm.js"></script>
   <script src="js/crisis.js"></script>
   <script src="js/auth.js"></script>
@@ -108,7 +114,11 @@
   <script src="js/features/toolkit.js"></script>
   <script src="js/features/garden.js"></script>
   <script src="js/features/timeline.js"></script>
+  <script src="js/features/sounds.js"></script>
+  <script src="js/features/progress.js"></script>
   <script src="js/features/settings.js"></script>
+  <!-- merges related features (Journey = progress+timeline+review+garden, Calm = winddown+grounding+sounds) -->
+  <script src="js/features/combined.js"></script>
 
   <!-- onboarding + boot -->
   <script src="js/onboarding.js"></script>

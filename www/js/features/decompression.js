@@ -953,7 +953,9 @@
     labelKey: 'nav.decompress',
     icon: 'decompress',
     order: 40,
-    tab: true,
+    // Not a bottom-dock tab anymore (the center FAB took that slot). Reached
+    // from the dashboard wind-down card + the You hub; gets a Back button.
+    tab: false,
     render: render,
   });
 

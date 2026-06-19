@@ -104,18 +104,41 @@
   // ---- canvas drawing ------------------------------------------------------
 
   var _resizeHandler = null;
+  var _gardenAnim = null;
 
-  function drawGarden(canvas, plantCount) {
+  // Animation driver: grows the plants in, then keeps them gently alive
+  // (swaying stems, twinkling stars). Stops itself when the canvas leaves the DOM.
+  function startGardenAnim(canvas, plantCount) {
+    stopGardenAnim();
+    var now = function () { return (window.performance && performance.now) ? performance.now() : Date.now(); };
+    var t0 = now();
+    function frame() {
+      if (!canvas || !document.body.contains(canvas)) { stopGardenAnim(); return; }
+      var el = now() - t0;
+      var grow = Math.min(1, el / 1200);
+      grow = 1 - Math.pow(1 - grow, 3); // ease-out cubic reveal
+      drawGarden(canvas, plantCount, { time: el, grow: grow });
+      _gardenAnim = window.requestAnimationFrame(frame);
+    }
+    _gardenAnim = window.requestAnimationFrame(frame);
+  }
+  function stopGardenAnim() { if (_gardenAnim) { window.cancelAnimationFrame(_gardenAnim); _gardenAnim = null; } }
+
+  function drawGarden(canvas, plantCount, opts) {
+    opts = opts || {};
+    var time = opts.time || 0;
+    var grow = opts.grow == null ? 1 : opts.grow;
     var ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Size canvas to its CSS size for crisp rendering
     var rect = canvas.getBoundingClientRect();
     var dpr = window.devicePixelRatio || 1;
-    var w = rect.width || canvas.parentElement.offsetWidth || 320;
-    var h = rect.height || canvas.parentElement.offsetHeight || 280;
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
+    var w = rect.width || (canvas.parentElement && canvas.parentElement.offsetWidth) || 320;
+    var h = rect.height || (canvas.parentElement && canvas.parentElement.offsetHeight) || 280;
+    var pw = Math.round(w * dpr), ph = Math.round(h * dpr);
+    // only reallocate the bitmap when the size actually changes (cheap per-frame)
+    if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     ctx.clearRect(0, 0, w, h);
@@ -128,10 +151,12 @@
       var sx = seededRand(s * 7 + 1) * w;
       var sy = seededRand(s * 7 + 2) * h * 0.75; // stars in upper 75%
       var sr = seededRand(s * 7 + 3) * 1.2 + 0.2;
-      var sa = seededRand(s * 7 + 4) * 0.5 + 0.3;
+      var base = seededRand(s * 7 + 4) * 0.5 + 0.3;
+      // twinkle: each star breathes at its own phase
+      var sa = base * (0.55 + 0.45 * Math.sin(time / 620 + s * 1.3));
       ctx.beginPath();
       ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(200,220,255,' + sa + ')';
+      ctx.fillStyle = 'rgba(200,220,255,' + sa.toFixed(3) + ')';
       ctx.fill();
     }
 
@@ -155,8 +180,13 @@
     ctx.fill();
 
     if (plantCount === 0) {
-      // empty state: a single small seedling silhouette
-      _drawSeedling(ctx, w / 2, groundY, 0.5);
+      // brand-new garden: one glowing seedling, gently swaying, so there's
+      // always a living plant to look at.
+      var gsway = Math.sin(time / 900) * 4;
+      ctx.save();
+      ctx.shadowColor = 'rgba(95,224,200,0.6)'; ctx.shadowBlur = 18;
+      _drawSeedling(ctx, w / 2 + gsway, groundY, 1.6 * (0.4 + 0.6 * grow));
+      ctx.restore();
       return;
     }
 
@@ -192,10 +222,11 @@
     }
     ctx.restore();
 
-    // Draw bloom/star for each plant
+    // Draw bloom/star for each plant — twinkle + grow-in scale
     for (var p = 0; p < plants.length; p++) {
       var plant = plants[p];
-      _drawStar(ctx, plant.x, plant.y, plant.r, plant.hue, plant.sat, p);
+      var tw = (0.86 + 0.14 * Math.sin(time / 700 + p * 1.7)) * (0.35 + 0.65 * grow);
+      _drawStar(ctx, plant.x, plant.y, plant.r * tw, plant.hue, plant.sat, p);
     }
 
     // --- ground plants (stems + blooms) grow from the horizon ---------------
@@ -207,7 +238,9 @@
       var gpy = groundY - 2;
       var height = seededRand(g * 31 + 2) * 30 + 18;
       var variety = Math.floor(seededRand(g * 31 + 3) * 3); // 0=stem+bloom, 1=grass, 2=shrub
-      _drawGroundPlant(ctx, gpx, gpy, height, variety, g);
+      // each plant grows in slightly staggered so the garden "blooms" up
+      var localGrow = Math.max(0, Math.min(1, grow * 1.4 - g * 0.05));
+      _drawGroundPlant(ctx, gpx, gpy, height, variety, g, time, localGrow);
     }
 
     // Soft glow overlay at the horizon
@@ -284,7 +317,12 @@
     ctx.restore();
   }
 
-  function _drawGroundPlant(ctx, x, y, height, variety, seed) {
+  function _drawGroundPlant(ctx, x, y, height, variety, seed, time, grow) {
+    time = time || 0;
+    grow = grow == null ? 1 : grow;
+    if (grow <= 0.01) return;
+    height = height * grow;             // grow up from the ground
+    var sway = Math.sin(time / 950 + seed * 1.6) * (4 + height * 0.06); // top drifts in the breeze
     ctx.save();
     ctx.translate(x, y);
     ctx.lineCap = 'round';
@@ -294,26 +332,24 @@
       var hue = Math.floor(seededRand(seed * 17 + 4) * 120 + 150); // teal to purple
       ctx.strokeStyle = 'rgba(80,160,100,0.8)';
       ctx.lineWidth = 1.8;
-      // slight curve via quadratic
+      // slight curve via quadratic + breeze sway at the tip
       ctx.beginPath();
-      var ctrlX = (seededRand(seed * 17 + 6) - 0.5) * 10;
+      var ctrlX = (seededRand(seed * 17 + 6) - 0.5) * 10 + sway * 0.4;
       ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(ctrlX, -height * 0.5, 0, -height);
+      ctx.quadraticCurveTo(ctrlX, -height * 0.5, sway, -height);
       ctx.stroke();
-      // bloom petals
+      // bloom petals — gently rotating, scaling in with growth
       ctx.save();
-      ctx.translate(0, -height);
-      var petals = 5;
+      ctx.translate(sway, -height);
+      ctx.rotate(Math.sin(time / 1300 + seed) * 0.12);
+      var petals = 5, pr = 3.5 * (0.5 + 0.5 * grow);
       for (var k = 0; k < petals; k++) {
         var angle = (k / petals) * Math.PI * 2;
-        var px2 = Math.cos(angle) * 5;
-        var py2 = Math.sin(angle) * 5;
         ctx.beginPath();
-        ctx.arc(px2, py2, 3.5, 0, Math.PI * 2);
+        ctx.arc(Math.cos(angle) * 5, Math.sin(angle) * 5, pr, 0, Math.PI * 2);
         ctx.fillStyle = 'hsla(' + hue + ',70%,75%,0.85)';
         ctx.fill();
       }
-      // center
       ctx.beginPath();
       ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255,240,150,0.9)';
@@ -321,31 +357,33 @@
       ctx.restore();
 
     } else if (variety === 1) {
-      // Grass blade cluster
+      // Grass blade cluster — each blade sways a touch differently
       ctx.strokeStyle = 'rgba(70,140,90,0.65)';
       for (var blade = -1; blade <= 1; blade++) {
+        var bSway = Math.sin(time / 820 + seed + blade) * 5;
         ctx.lineWidth = 1.2;
         ctx.beginPath();
         ctx.moveTo(blade * 4, 0);
-        ctx.quadraticCurveTo(blade * 8 + (seededRand(seed * 17 + blade + 8) - 0.5) * 6, -height * 0.6, blade * 5, -height);
+        ctx.quadraticCurveTo(blade * 8 + (seededRand(seed * 17 + blade + 8) - 0.5) * 6 + bSway, -height * 0.6, blade * 5 + bSway, -height);
         ctx.stroke();
       }
 
     } else {
-      // Small shrub
+      // Small shrub — canopy bobs softly
+      var bob = Math.sin(time / 1100 + seed) * 2;
       ctx.strokeStyle = 'rgba(60,120,80,0.7)';
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(0, -height * 0.55);
+      ctx.lineTo(bob * 0.4, -height * 0.55);
       ctx.stroke();
-      // rounded canopy
       var shrubHue = Math.floor(seededRand(seed * 17 + 12) * 60 + 120);
-      var canopyGrad = ctx.createRadialGradient(0, -height * 0.72, 2, 0, -height * 0.72, height * 0.55);
+      var cy = -height * 0.72 + bob;
+      var canopyGrad = ctx.createRadialGradient(bob, cy, 2, bob, cy, height * 0.55);
       canopyGrad.addColorStop(0, 'hsla(' + shrubHue + ',55%,50%,0.75)');
       canopyGrad.addColorStop(1, 'hsla(' + shrubHue + ',45%,35%,0.3)');
       ctx.beginPath();
-      ctx.ellipse(0, -height * 0.72, height * 0.38, height * 0.42, 0, 0, Math.PI * 2);
+      ctx.ellipse(bob, cy, height * 0.38 * (0.4 + 0.6 * grow), height * 0.42 * (0.4 + 0.6 * grow), 0, 0, Math.PI * 2);
       ctx.fillStyle = canopyGrad;
       ctx.fill();
     }
@@ -451,15 +489,8 @@
     // ---- intro --------------------------------------------------------------
     root.appendChild(UI.el('p', { class: 'soft small', style: { lineHeight: '1.6', marginBottom: 'var(--s4)' } }, t('grd.intro')));
 
-    // ---- empty state --------------------------------------------------------
-    if (engagement === 0) {
-      root.appendChild(UI.empty('🌱', null, t('grd.empty')));
-      root.appendChild(UI.el('div', { class: 'small soft center mt4' }, t('grd.keepGrowing')));
-      Anchor.register({ id: 'garden', labelKey: 'grd.title', icon: 'spark', order: 70, tab: false, render: render, onShow: onShow });
-      return;
-    }
-
-    // ---- garden scene (canvas) ----------------------------------------------
+    // ---- garden scene (canvas) — ALWAYS shown; a glowing seedling for a brand
+    //      new garden, so there's always a living plant on screen ----
     var scene = UI.el('div', { class: 'garden-scene', style: { height: '280px' } });
     var canvas = UI.el('canvas', { class: 'garden-canvas' });
     scene.appendChild(canvas);
@@ -467,15 +498,23 @@
     // Caption
     var plantLabel = plantCount === 1 ? t('grd.plant') : t('grd.plants');
     var caption = UI.el('div', { class: 'garden-caption' }, [
-      UI.el('div', { class: 'gc-count' }, String(plantCount)),
-      UI.el('div', { class: 'gc-lbl' }, plantLabel),
+      UI.el('div', { class: 'gc-count' }, String(Math.max(1, plantCount))),
+      UI.el('div', { class: 'gc-lbl' }, plantCount <= 1 ? t('grd.plant') : plantLabel),
     ]);
     scene.appendChild(caption);
     root.appendChild(scene);
+    if (engagement === 0) root.appendChild(UI.el('div', { class: 'small soft center mt4' }, t('grd.empty')));
 
-    // Store canvas ref for onShow
+    // Store canvas ref for onShow (and on the canvas itself, so onShow can find
+    // it reliably even though the page wrapper has no special class/attribute).
     root._gardenCanvas = canvas;
     root._gardenPlantCount = plantCount;
+    canvas._plantCount = plantCount;
+    // Kick off the living, growing animation as soon as layout settles. (This no
+    // longer depends on onShow, which used to look for a container class that
+    // never existed — which is why the plant never drew.)
+    requestAnimationFrame(function () { startGardenAnim(canvas, plantCount); });
+    setTimeout(function () { if (!_gardenAnim) startGardenAnim(canvas, plantCount); }, 60);
 
     // ---- stats grid ---------------------------------------------------------
     root.appendChild(UI.el('div', { class: 'grd-stats mt4' }, [
@@ -515,10 +554,10 @@
         ),
       ]);
 
-      // Confetti for newly unlocked milestones
+      // Confetti + a celebratory haptic cadence for newly unlocked milestones
       if (ms.unlocked && isJust) {
         setTimeout(function (el) {
-          return function () { confettiBurst(el); };
+          return function () { confettiBurst(el); if (UI.hapticSuccess) UI.hapticSuccess(); };
         }(row), 200 + milestones.indexOf(ms) * 80);
       }
 
@@ -552,28 +591,18 @@
       _resizeHandler = null;
     }
 
-    // Find the active view's root container
-    var root = document.querySelector('.view-active') || document.querySelector('[data-view="garden"]');
-    if (!root) return;
-
-    var canvas = root._gardenCanvas;
-    var plantCount = root._gardenPlantCount;
-
-    if (!canvas) {
-      // Try to locate canvas by class inside root as fallback
-      canvas = root.querySelector('.garden-canvas');
-      plantCount = plantCount || totalEngagement();
-    }
-
+    // The live page is whatever canvas is currently inside #view — find it
+    // directly rather than relying on a container marker class.
+    var view = document.getElementById('view');
+    var canvas = view && view.querySelector('.garden-canvas');
     if (!canvas) return;
 
-    // Initial draw
-    drawGarden(canvas, plantCount || 0);
+    var plantCount = canvas._plantCount != null ? canvas._plantCount : totalEngagement();
 
-    // Bind resize with cleanup
-    _resizeHandler = function () {
-      drawGarden(canvas, plantCount || 0);
-    };
+    // (Re)start the animation loop for the freshly shown canvas.
+    startGardenAnim(canvas, plantCount || 0);
+
+    _resizeHandler = function () { /* loop re-reads canvas size each frame via drawGarden */ };
     window.addEventListener('resize', _resizeHandler);
   }
 

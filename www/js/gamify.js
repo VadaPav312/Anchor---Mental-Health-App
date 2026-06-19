@@ -12,8 +12,9 @@
 //   Gamify.award(n)   -> manually grant XP
 // ===========================================================================
 (function () {
-  const LEVELS = [0, 100, 250, 500, 900, 1500, 2400, 3800, 6000];
-  const XP = { moods: 15, journal: 25, decompress: 30, energy: 8, valuesChecks: 12, sleep: 20, expLogs: 20, insights: 10 };
+  // 16 levels now (was 9) — more frequent, more imaginative milestones.
+  const LEVELS = [0, 80, 200, 380, 640, 1000, 1500, 2200, 3200, 4600, 6500, 9000, 12500, 17000, 23000, 31000];
+  const XP = { moods: 15, journal: 25, decompress: 30, energy: 8, activity: 10, valuesChecks: 12, sleep: 20, expLogs: 20, insights: 10 };
 
   function names() { return t('gam.names').split('|'); }
   function gobj() { return Store.raw.gamification; }
@@ -23,6 +24,7 @@
     return {
       moods: Store.moods.count(), journal: Store.journal.count(),
       decompress: Store.decompress.count(), energy: Store.energy.count(),
+      activity: Store.activity ? Store.activity.count() : 0,
       valuesChecks: Store.valuesChecks.count(), sleep: Store.sleep.count(),
       expLogs: Store.experiments.all().reduce((s, e) => s + ((e.logs && e.logs.length) || 0), 0),
       insights: Store.insights.all().filter(i => !i.dismissed).length,
@@ -37,26 +39,46 @@
     const cur = currentCounts(); let gained = 0;
     for (const k in XP) { const prev = g.counts[k] || 0; const now = cur[k] || 0; if (now > prev) gained += (now - prev) * XP[k]; g.counts[k] = now; }
     if (gained > 0) g.xp = (g.xp || 0) + gained;
+    const oldLevel = g.level || 1;
     const newLevel = levelForXp(g.xp);
-    const leveled = newLevel > (g.level || 1);
+    const leveled = newLevel > oldLevel;
     g.level = newLevel;
     Store.persist();
     if (gained > 0) Store.emit('gamify', { gained, xp: g.xp, level: g.level, leveled });
-    if (leveled) celebrate(newLevel);
+    if (leveled) celebrate(newLevel, newLevel - oldLevel);
     return { gained, leveled };
   }
 
-  function celebrate(level) {
-    // debounce so bulk imports / demo seeding don't spam toasts
-    if (_celebrateLock) return; _celebrateLock = setTimeout(() => { _celebrateLock = null; }, 1500);
-    UI.haptic('success');
-    UI.toast('✨ ' + t('gam.levelUp') + ' — ' + t('gam.reached', { name: levelName(level) }), 'good');
-    confettiBurst();
+  function celebrate(level, jump) {
+    // debounce so bulk imports / demo seeding don't spam celebrations
+    if (_celebrateLock) return; _celebrateLock = setTimeout(() => { _celebrateLock = null; }, 1300);
+    (UI.hapticSuccess || UI.haptic)('success');
+    confettiBurst(jump > 1 ? 18 : 40);
+    // big single-step level-ups get a full celebratory modal; bulk jumps (seed /
+    // import) just get a toast so they don't stack.
+    if (jump > 1 || typeof UI.modal !== 'function') {
+      UI.toast('✨ ' + t('gam.levelUp') + ' — ' + t('gam.reached', { name: levelName(level) }), 'good');
+      return;
+    }
+    try {
+      const m = UI.modal({
+        title: null,
+        body: UI.el('div', { class: 'col center', style: { textAlign: 'center', padding: '6px 4px' } }, [
+          UI.el('div', { style: { fontSize: '3rem', animation: 'pop .5s var(--ease-spring)' } }, '✨'),
+          UI.el('div', { class: 'eyebrow' }, t('gam.levelUp')),
+          UI.el('div', { class: 'serif grad-text', style: { fontSize: '2.2rem', margin: '4px 0 2px' } }, t('gam.lvN', { n: level })),
+          UI.el('div', { class: 'big b' }, levelName(level)),
+          UI.el('div', { class: 'small soft', style: { marginTop: '10px', lineHeight: '1.5', maxWidth: '300px' } }, t('gam.levelUpSub')),
+        ]),
+        actions: [UI.el('button', { class: 'btn btn-primary', onclick: () => m.close() }, t('app.continue'))],
+      });
+    } catch (e) { UI.toast('✨ ' + t('gam.levelUp'), 'good'); }
   }
-  function confettiBurst() {
+  function confettiBurst(count) {
     if (typeof document === 'undefined') return;
-    const colors = ['var(--a1)', 'var(--a2)', 'var(--a3)', 'var(--a5)'];
-    for (let i = 0; i < 26; i++) {
+    const colors = ['var(--a1)', 'var(--a2)', 'var(--a3)', 'var(--a5)', 'var(--a4)'];
+    const n = count || 30;
+    for (let i = 0; i < n; i++) {
       const p = document.createElement('div');
       p.className = 'confetti-piece';
       p.style.left = (Math.random() * 100) + '%';
@@ -82,7 +104,7 @@
   function hud(opts) {
     opts = opts || {};
     const p = progress();
-    return UI.el('div', { class: 'glass-card card-tight', onclick: () => Anchor.go('garden') }, [
+    return UI.el('div', { class: 'glass-card card-tight', onclick: () => Anchor.go('journey', { tab: 'garden' }) }, [
       UI.el('div', { class: 'row between', style: { alignItems: 'center' } }, [
         UI.el('div', { class: 'row gap3', style: { alignItems: 'center' } }, [
           UI.el('div', { class: 'xp-badge' }, t('gam.lvlShort', { n: p.level })),
@@ -98,10 +120,10 @@
   }
 
   function award(n, reason) {
-    ensure(); const g = gobj(); g.xp = (g.xp || 0) + (n || 0);
-    const nl = levelForXp(g.xp); const leveled = nl > g.level; g.level = nl;
+    ensure(); const g = gobj(); const old = g.level || 1; g.xp = (g.xp || 0) + (n || 0);
+    const nl = levelForXp(g.xp); const leveled = nl > old; g.level = nl;
     Store.persist(); Store.emit('gamify', { gained: n, xp: g.xp, level: g.level, leveled });
-    if (leveled) celebrate(nl);
+    if (leveled) celebrate(nl, nl - old);
   }
 
   // auto-award whenever stored data grows

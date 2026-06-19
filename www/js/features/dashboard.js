@@ -27,43 +27,120 @@
       Store.streak() > 1 ? UI.el('div', { class: 'small soft mt1' }, '🔥 ' + t('dash.streak', { n: Store.streak() })) : null,
     ]));
 
-    const grid = UI.el('div', { class: 'col gap4 stagger' });
+    const grid = UI.el('div', { class: 'col gap4 stagger dash-grid' });
     root.appendChild(grid);
 
-    // ---- gamification HUD (level + light/XP) ----
-    if (window.Gamify) grid.appendChild(Gamify.hud());
+    // Each home widget is a self-contained, REORDERABLE block. Long-press any
+    // of them to enter "arrange" mode (iOS-style jiggle) and drag to reorder;
+    // the order is remembered. Conditional widgets simply drop out when N/A.
+    const WIDGETS = [
+      { key: 'hud',        build: () => window.Gamify ? Gamify.hud() : null },
+      { key: 'vitality',   build: () => vitalityCard() },
+      { key: 'sleepprompt', build: () => sleepPromptCard() },
+      { key: 'briefing',   build: () => aiBriefingCard() },
+      { key: 'weather',    build: () => weatherCard() },
+      { key: 'outside',    build: () => window.Weather ? Weather.outsideCard() : null },
+      { key: 'checkin',    build: () => Store.derive.dayMood(Store.today()) ? null : checkInCard() },
+      { key: 'tiles',      build: () => UI.el('div', { class: 'tiles' }, [sleepTile(), energyTile()]) },
+      { key: 'insight',    build: () => insightCard() },
+      { key: 'winddown',   build: () => windDownCard() },
+      { key: 'experiment', build: () => { const e = Store.derive.activeExperiment(); return e ? experimentCard(e) : null; } },
+      { key: 'quicklog',   build: () => quickLogCard() },
+      { key: 'values',     build: () => valuesCard() },
+    ];
+    const byKey = {}; WIDGETS.forEach(w => byKey[w.key] = w);
+    const saved = Store.get('settings.dashOrder', null);
+    const order = (Array.isArray(saved) ? saved.filter(k => byKey[k]) : []);
+    WIDGETS.forEach(w => { if (order.indexOf(w.key) === -1) order.push(w.key); });
 
-    // ---- AI briefing (visibly AI: summarizes your day + wind-down tasks) ----
-    grid.appendChild(aiBriefingCard());
+    order.forEach(key => {
+      const w = byKey[key]; if (!w) return;
+      let node; try { node = w.build(); } catch (e) { node = null; }
+      if (!node) return;
+      const wrap = UI.el('div', { class: 'dash-widget', dataset: { wkey: key } }, [node]);
+      attachArrange(wrap, grid);
+      grid.appendChild(wrap);
+    });
 
-    // ---- today's inner weather (tap -> weather map) ----
-    grid.appendChild(weatherCard());
+    // one-time animated cue teaching the swipe-between-sections gesture
+    if (!Store.get('flags.swipeHintSeen')) setTimeout(showSwipeHint, 700);
+  }
 
-    // ---- "go outside" nudge when the real local weather is nice ----
-    if (window.Weather) { const oc = Weather.outsideCard(); if (oc) grid.appendChild(oc); }
+  function showSwipeHint() {
+    if (Store.get('flags.swipeHintSeen') || document.getElementById('swipeHint')) return;
+    Store.set('flags.swipeHintSeen', true);
+    const hint = UI.el('div', { class: 'swipe-hint glass-strong', id: 'swipeHint' }, [
+      UI.el('span', { class: 'sh-arrow' }, '‹'),
+      UI.el('span', { class: 'small b' }, t('dash.swipeHint')),
+      UI.el('span', { class: 'sh-arrow' }, '›'),
+    ]);
+    document.body.appendChild(hint);
+    UI.haptic('light');
+    setTimeout(() => { hint.classList.add('out'); setTimeout(() => hint.remove(), 400); }, 3400);
+    hint.onclick = () => { hint.classList.add('out'); setTimeout(() => hint.remove(), 400); };
+  }
 
-    // ---- check-in CTA if not yet today ----
-    const todayMood = Store.derive.dayMood(Store.today());
-    if (!todayMood) grid.appendChild(checkInCard());
+  // ---- widget arrange / reorder (long-press → jiggle → drag) ---------------
+  let _arranging = false, _dragEl = null;
 
-    // ---- two-up: last night + energy now ----
-    grid.appendChild(UI.el('div', { class: 'tiles' }, [sleepTile(), energyTile()]));
+  function attachArrange(wrap, grid) {
+    UI.longPress(wrap, () => enterArrange(grid), 480);
+    wrap.addEventListener('pointerdown', (e) => {
+      if (!_arranging) return;
+      e.preventDefault();
+      _dragEl = wrap; wrap.classList.add('dragging');
+      try { wrap.setPointerCapture(e.pointerId); } catch {}
+      UI.haptic('medium');
+      const move = (ev) => onArrangeMove(ev, grid);
+      const up = () => {
+        document.removeEventListener('pointermove', move);
+        if (_dragEl) { _dragEl.classList.remove('dragging'); _dragEl = null; }
+        persistOrder(grid); UI.haptic('light');
+      };
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up, { once: true });
+    });
+  }
 
-    // ---- top insight from Pattern Detective ----
-    grid.appendChild(insightCard());
+  function onArrangeMove(ev, grid) {
+    if (!_dragEl) return;
+    const sibs = Array.prototype.filter.call(grid.children, c => c !== _dragEl && c.classList.contains('dash-widget'));
+    let target = null;
+    for (const s of sibs) { const r = s.getBoundingClientRect(); if (ev.clientY < r.top + r.height / 2) { target = s; break; } }
+    if (target) {
+      if (_dragEl.nextElementSibling !== target) { grid.insertBefore(_dragEl, target); UI.haptic('tick'); }
+    } else if (grid.lastElementChild !== _dragEl) {
+      grid.appendChild(_dragEl); UI.haptic('tick');
+    }
+  }
 
-    // ---- wind-down nudge (stronger in the evening / when in bed) ----
-    grid.appendChild(windDownCard());
-
-    // ---- active experiment ----
-    const exp = Store.derive.activeExperiment();
-    if (exp) grid.appendChild(experimentCard(exp));
-
-    // ---- quick log row ----
-    grid.appendChild(quickLogCard());
-
-    // ---- values of the day ----
-    grid.appendChild(valuesCard());
+  function enterArrange(grid) {
+    if (_arranging) return;
+    _arranging = true;
+    grid.classList.add('arranging');
+    document.body.classList.add('arrange-mode');
+    UI.hapticSeq([{ style: 'medium', delay: 0 }, { style: 'light', delay: 90 }]);
+    // a floating "Done" bar
+    if (!document.getElementById('arrangeBar')) {
+      const bar = UI.el('div', { class: 'arrange-bar glass-strong', id: 'arrangeBar' }, [
+        UI.el('span', { class: 'small' }, t('dash.arrangeHint')),
+        UI.btn(t('app.done'), { class: 'btn-primary btn-sm', onClick: () => exitArrange(grid) }),
+      ]);
+      document.body.appendChild(bar);
+    }
+  }
+  function exitArrange(grid) {
+    _arranging = false;
+    if (grid) grid.classList.remove('arranging');
+    document.body.classList.remove('arrange-mode');
+    const bar = document.getElementById('arrangeBar'); if (bar) bar.remove();
+    persistOrder(grid);
+    UI.haptic('success');
+  }
+  function persistOrder(grid) {
+    if (!grid) return;
+    const keys = Array.prototype.map.call(grid.querySelectorAll('.dash-widget'), el => el.dataset.wkey);
+    if (keys.length) Store.settings.update({ dashOrder: keys });
   }
 
   function weatherCard() {
@@ -216,6 +293,99 @@
     ], { onClick: () => Anchor.go('values') });
   }
 
+  // ---- ENERGY BAR (vitality from rest + movement, tied to mental health) ---
+  function vitalityCard() {
+    // Don't show a (misleading) energy reading until there's something to base
+    // it on — a fresh user should only see the questions, not a fake "low".
+    const hasBasis = Store.sleep.count() > 0 || (Store.activity && Store.activity.count() > 0) || Store.energy.count() > 0;
+    if (!hasBasis) return null;
+    const v = Store.derive.vitality();
+    const color = v.band === 'high' ? 'var(--good)' : v.band === 'low' ? 'var(--bad)' : 'var(--warn)';
+    const stateLabel = t('vit.' + v.band);
+
+    const bar = UI.el('div', { style: { height: '14px', borderRadius: '999px', background: 'rgba(255,255,255,0.10)', overflow: 'hidden', marginTop: '10px' } }, [
+      UI.el('div', { style: {
+        width: v.score + '%', height: '100%', borderRadius: '999px',
+        background: 'linear-gradient(90deg, var(--a4), ' + color + ')',
+        boxShadow: '0 0 12px -2px ' + color, transition: 'width 0.8s var(--ease-out)',
+      } }),
+    ]);
+
+    const advice = UI.el('div', { class: 'small soft', style: { marginTop: '12px', lineHeight: '1.5' } }, [
+      UI.el('span', {}, t('vit.' + v.read) + ' '),
+      v.band !== 'high' ? UI.el('span', { class: 'b', style: { color: 'var(--ink)' } }, t('vit.' + v.lever)) : null,
+    ]);
+    // optional read-aloud, inline at the end of the advice (no circle, no overlap)
+    if (window.Speech && Speech.ttsSupported() && Store.get('settings.tts', true) !== false && v.band !== 'high') {
+      const rb = Speech.readButton(() => t('vit.' + v.read) + ' ' + t('vit.' + v.lever));
+      if (rb) { rb.style.verticalAlign = 'middle'; rb.style.marginLeft = '2px'; advice.appendChild(rb); }
+    }
+
+    // activity quick-log
+    const logRow = UI.el('div', { class: 'row wrap gap2', style: { marginTop: '12px' } });
+    [['light', 1], ['moderate', 2], ['intense', 3]].forEach(([lvl, n]) => {
+      logRow.appendChild(UI.el('button', { class: 'chip', onclick: () => {
+        Store.activity.add({ kind: 'move', level: n, label: t('vit.' + lvl) });
+        UI.haptic('success'); UI.toast(t('vit.loggedMove'), 'good'); Anchor.refresh();
+      } }, '🏃 ' + t('vit.' + lvl)));
+    });
+    logRow.appendChild(UI.el('button', { class: 'chip', onclick: () => {
+      Store.activity.add({ kind: 'rest', level: 2, label: t('vit.rest') });
+      UI.haptic('light'); UI.toast(t('vit.loggedRest'), 'good'); Anchor.refresh();
+    } }, '🧘 ' + t('vit.rest')));
+
+    const head = UI.el('div', { class: 'row between', style: { alignItems: 'center' } }, [
+      UI.el('div', {}, [
+        UI.el('div', { class: 'eyebrow' }, t('vit.title')),
+        UI.el('div', { class: 'row gap2', style: { alignItems: 'baseline', marginTop: '2px' } }, [
+          UI.el('div', { class: 'big b', style: { color } }, v.score),
+          UI.el('div', { class: 'small', style: { color } }, stateLabel),
+        ]),
+      ]),
+      UI.frag('<span style="width:22px;height:22px;display:inline-flex;color:' + color + '">' + Icons.get('energy') + '</span>'),
+    ]);
+
+    return UI.card([head, bar, advice, logRow]);
+  }
+
+  // ---- DAILY SLEEP PROMPT (when tracking = "ask" and no night logged today) -
+  function sleepPromptCard() {
+    if (Store.get('settings.sleepTracking', 'ask') !== 'ask') return null;
+    const today = Store.today();
+    if (Store.sleep.all().some(s => s.date === today)) return null;
+    if (Store.get('session.sleepPromptSkipped') === today) return null;
+    const h = new Date().getHours();
+    if (h >= 14) return null;   // only nudge in the morning/early afternoon
+
+    let quality = 3, hours = 7.5;
+    const qLabels = [t('slp.rough'), t('slp.okay'), t('slp.solid'), t('slp.great')];
+    const qOut = UI.el('div', { class: 'b', style: { color: 'var(--a1)' } }, qLabels[quality - 1]);
+    const qSlider = UI.el('input', { class: 'range', type: 'range', min: 1, max: 4, step: 1, value: quality,
+      oninput: (e) => { quality = +e.target.value; qOut.textContent = qLabels[quality - 1]; UI.haptic('light'); } });
+    const hOut = UI.el('div', { class: 'b' }, hours + 'h');
+    const hSlider = UI.el('input', { class: 'range', type: 'range', min: 3, max: 12, step: 0.5, value: hours,
+      oninput: (e) => { hours = +e.target.value; hOut.textContent = hours + 'h'; } });
+
+    return UI.card([
+      UI.el('div', { class: 'row between', style: { alignItems: 'center' } }, [
+        UI.el('div', {}, [UI.el('div', { class: 'b big' }, t('slp.morningTitle')), UI.el('div', { class: 'small soft mt1' }, t('slp.morningSub'))]),
+        UI.frag('<span style="font-size:1.6rem">🌙</span>'),
+      ]),
+      UI.el('div', { class: 'row between', style: { marginTop: '14px', marginBottom: '4px' } }, [UI.el('div', { class: 'small soft' }, t('slp.quality')), qOut]),
+      qSlider,
+      UI.el('div', { class: 'row between', style: { marginTop: '12px', marginBottom: '4px' } }, [UI.el('div', { class: 'small soft' }, t('slp.hours')), hOut]),
+      hSlider,
+      UI.el('div', { class: 'row gap2', style: { marginTop: '16px' } }, [
+        UI.btn(t('slp.save'), { class: 'btn-primary grow', onClick: () => {
+          const score = Math.round(40 + quality * 12 + Math.max(0, 9 - Math.abs(hours - 8)) * 2);
+          Store.sleep.add({ date: today, durationMin: Math.round(hours * 60), restful: quality * 2.5, score: Math.min(100, score), source: 'manual' });
+          UI.haptic('success'); UI.toast(t('app.saved'), 'good'); Anchor.refresh();
+        } }),
+        UI.btn(t('slp.skip'), { class: 'btn-ghost', onClick: () => { Store.set('session.sleepPromptSkipped', today); Anchor.refresh(); } }),
+      ]),
+    ]);
+  }
+
   // =========================================================================
   // AI BRIEFING — the API, visibly at work. Summarizes the user's sleep, mood,
   // energy, the latest pattern, their values and the tasks they set down at
@@ -232,21 +402,34 @@
     return card;
   }
 
+  // The whole briefing uses ONE consistent vertical rhythm: blocks are separated
+  // by var(--s4), the focus list rows by var(--s2). No mixed mt2/mt3 stacking.
   function briefHeader(rightEl) {
-    return UI.el('div', { class: 'row between', style: { alignItems: 'center' } }, [
-      UI.el('div', { class: 'ins-kicker', style: { margin: 0 } }, [
-        UI.frag('<span style="width:15px">' + Icons.get('spark') + '</span>'),
-        t('brief.title'),
-        UI.el('span', { class: 'badge calm', style: { marginLeft: '6px' } }, t('brief.tag')),
+    // NOTE: .ins-kicker is CSS-scoped to .insight; this card isn't one, so the
+    // kicker is styled inline here (row, gap, accent, uppercase eyebrow).
+    return UI.el('div', { class: 'row between', style: { alignItems: 'center', gap: 'var(--s2)' } }, [
+      UI.el('div', { class: 'row', style: {
+        gap: '7px', alignItems: 'center', minWidth: '0',
+        color: 'var(--a1)', fontWeight: '700', fontSize: '0.74rem',
+        textTransform: 'uppercase', letterSpacing: '0.1em',
+      } }, [
+        UI.frag('<span style="width:15px;height:15px;display:inline-flex;flex:0 0 auto">' + Icons.get('spark') + '</span>'),
+        UI.el('span', {}, t('brief.title')),
+        UI.el('span', { class: 'badge calm', style: { marginLeft: '4px', flex: '0 0 auto' } }, t('brief.tag')),
       ]),
       rightEl || null,
     ]);
   }
 
+  function briefRefreshBtn(card) {
+    return UI.el('button', { class: 'icon-btn', style: { width: '34px', height: '34px', fontSize: '1.05rem', lineHeight: '1', flex: '0 0 auto' }, 'aria-label': t('brief.refresh'),
+      onclick: (e) => { e.stopPropagation(); Store.set('session.briefing', null); generateBriefing(card); } }, '⟳');
+  }
+
   function paintBriefingEmpty(card) {
     UI.clear(card);
     card.appendChild(briefHeader());
-    card.appendChild(UI.el('div', { class: 'small soft mt2' }, t('brief.empty')));
+    card.appendChild(UI.el('p', { class: 'small soft', style: { marginTop: 'var(--s3)', lineHeight: '1.5' } }, t('brief.empty')));
   }
 
   async function generateBriefing(card) {
@@ -254,7 +437,8 @@
     _briefingInFlight = true;
     UI.clear(card);
     card.appendChild(briefHeader());
-    card.appendChild(UI.el('div', { class: 'row gap2 mt3', style: { alignItems: 'center' } }, [UI.thinking(), UI.el('span', { class: 'small soft' }, t('brief.generating'))]));
+    card.appendChild(UI.el('div', { class: 'row', style: { gap: 'var(--s2)', alignItems: 'center', marginTop: 'var(--s3)' } }, [UI.thinking(), UI.el('span', { class: 'small soft' }, t('brief.generating'))]));
+    if (UI.startHum) UI.startHum();   // faint haptic "hum" while the AI thinks
     try {
       const data = await LLM.json(briefingPrompt(briefingContext()), { lang: Store.get('settings.lang'), temperature: 0.6 });
       Store.set('session.briefing', { date: Store.today(), data });
@@ -262,30 +446,41 @@
     } catch (e) {
       UI.clear(card);
       card.appendChild(briefHeader());
-      card.appendChild(UI.el('button', { class: 'small', style: { color: 'var(--a1)', marginTop: '10px' }, onclick: () => generateBriefing(card) }, t('brief.failed')));
-    } finally { _briefingInFlight = false; }
+      card.appendChild(UI.el('button', { class: 'small', style: { color: 'var(--a1)', marginTop: 'var(--s3)' }, onclick: () => generateBriefing(card) }, t('brief.failed')));
+    } finally { _briefingInFlight = false; if (UI.stopHum) UI.stopHum(); }
   }
 
   function paintBriefing(card, data) {
     UI.clear(card);
-    card.appendChild(briefHeader(UI.el('button', { class: 'icon-btn', style: { width: '32px', height: '32px', fontSize: '1rem' }, onclick: (e) => { e.stopPropagation(); Store.set('session.briefing', null); generateBriefing(card); } }, '⟳')));
-    card.appendChild(UI.el('div', { class: 'mt2', style: { lineHeight: '1.55' } }, data.summary || ''));
+    card.appendChild(briefHeader(briefRefreshBtn(card)));
+    card.appendChild(UI.el('p', { class: 'soft', style: { marginTop: 'var(--s3)', lineHeight: '1.6' } }, data.summary || ''));
     const focus = (data.focus || []).slice(0, 3);
     if (focus.length) {
-      card.appendChild(UI.el('div', { class: 'eyebrow mt3' }, t('brief.focus')));
-      const list = UI.el('div', { class: 'col gap2 mt2' });
+      card.appendChild(UI.el('div', { class: 'eyebrow', style: { marginTop: 'var(--s4)', marginBottom: 'var(--s2)' } }, t('brief.focus')));
+      const list = UI.el('div', { class: 'col', style: { gap: 'var(--s2)' } });
       focus.forEach(f => list.appendChild(focusRow(String(f))));
       card.appendChild(list);
     }
-    if (data.closing) card.appendChild(UI.el('div', { class: 'small soft mt3', style: { fontStyle: 'italic' } }, data.closing));
-    card.appendChild(UI.el('div', { class: 'tiny muted mt2' }, '✨ ' + t('brief.poweredBy')));
+    if (data.closing) card.appendChild(UI.el('p', { class: 'small soft', style: { marginTop: 'var(--s4)', lineHeight: '1.5', fontStyle: 'italic' } }, data.closing));
+    const footRow = UI.el('div', { class: 'row', style: { alignItems: 'center', gap: 'var(--s2)' } }, [
+      UI.el('div', { class: 'tiny muted', style: { flex: '1 1 auto' } }, '✨ ' + t('brief.poweredBy')),
+    ]);
+    if (window.Speech && Speech.ttsSupported() && Store.get('settings.tts', true) !== false) {
+      const rb = Speech.readButton(() => [data.summary].concat(data.focus || [], data.closing || []).filter(Boolean).join('. '));
+      if (rb) footRow.appendChild(rb);
+    }
+    card.appendChild(UI.el('div', { style: { marginTop: 'var(--s4)', paddingTop: 'var(--s3)', borderTop: '1px solid var(--glass-stroke-soft)' } }, [footRow]));
   }
 
   function focusRow(text) {
-    const row = UI.el('button', { class: 'lrow tap', style: { width: '100%', textAlign: 'left', borderRadius: 'var(--r-sm)' } }, [
-      UI.frag('<span class="lr-ico" style="width:30px;height:30px;font-size:0.9rem">' + Icons.get('target') + '</span>'),
-      UI.el('div', { class: 'lr-body' }, [UI.el('div', { class: 'small' }, text)]),
-      UI.frag('<span style="width:18px;color:var(--ink-ghost)">' + Icons.get('check') + '</span>'),
+    const row = UI.el('button', { class: 'tap', style: {
+      display: 'flex', alignItems: 'center', gap: 'var(--s3)', width: '100%', textAlign: 'left',
+      padding: '11px 13px', borderRadius: 'var(--r-md)',
+      background: 'var(--glass-bg-faint)', border: '1px solid var(--glass-stroke-soft)',
+    } }, [
+      UI.frag('<span style="width:22px;height:22px;display:inline-flex;flex:0 0 auto;color:var(--a1)">' + Icons.get('target') + '</span>'),
+      UI.el('div', { class: 'small', style: { flex: '1 1 auto', lineHeight: '1.4', minWidth: '0' } }, text),
+      UI.frag('<span style="width:18px;height:18px;display:inline-flex;flex:0 0 auto;color:var(--ink-ghost)">' + Icons.get('check') + '</span>'),
     ]);
     row.onclick = () => { row.style.opacity = '0.5'; row.style.textDecoration = 'line-through'; UI.haptic('success'); UI.toast(t('brief.doneTask'), 'good'); };
     return row;

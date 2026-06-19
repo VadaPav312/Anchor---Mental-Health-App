@@ -38,6 +38,19 @@
     { code: 'id', name: 'Indonesian', native: 'Bahasa Indonesia', dir: 'ltr', flag: '🇮🇩' },
     { code: 'vi', name: 'Vietnamese', native: 'Tiếng Việt',  dir: 'ltr', flag: '🇻🇳' },
     { code: 'th', name: 'Thai',       native: 'ไทย',         dir: 'ltr', flag: '🇹🇭' },
+    // ---- additional languages (UI completed on-device by AI) ----
+    { code: 'bn', name: 'Bengali',    native: 'বাংলা',        dir: 'ltr', flag: '🇧🇩', ai: true },
+    { code: 'fa', name: 'Persian',    native: 'فارسی',        dir: 'rtl', flag: '🇮🇷', ai: true },
+    { code: 'he', name: 'Hebrew',     native: 'עברית',        dir: 'rtl', flag: '🇮🇱', ai: true },
+    { code: 'ur', name: 'Urdu',       native: 'اردو',         dir: 'rtl', flag: '🇵🇰', ai: true },
+    { code: 'el', name: 'Greek',      native: 'Ελληνικά',     dir: 'ltr', flag: '🇬🇷', ai: true },
+    { code: 'ro', name: 'Romanian',   native: 'Română',       dir: 'ltr', flag: '🇷🇴', ai: true },
+    { code: 'cs', name: 'Czech',      native: 'Čeština',      dir: 'ltr', flag: '🇨🇿', ai: true },
+    { code: 'hu', name: 'Hungarian',  native: 'Magyar',       dir: 'ltr', flag: '🇭🇺', ai: true },
+    { code: 'fil', name: 'Filipino',  native: 'Filipino',     dir: 'ltr', flag: '🇵🇭', ai: true },
+    { code: 'ms', name: 'Malay',      native: 'Bahasa Melayu', dir: 'ltr', flag: '🇲🇾', ai: true },
+    { code: 'sw', name: 'Swahili',    native: 'Kiswahili',    dir: 'ltr', flag: '🇰🇪', ai: true },
+    { code: 'ta', name: 'Tamil',      native: 'தமிழ்',        dir: 'ltr', flag: '🇮🇳', ai: true },
   ];
   LANGUAGES.forEach(l => { meta[l.code] = l; });
 
@@ -48,6 +61,9 @@
     it: 'Italian', nl: 'Dutch', sv: 'Swedish', pl: 'Polish', uk: 'Ukrainian',
     ru: 'Russian', tr: 'Turkish', ar: 'Arabic', hi: 'Hindi', zh: 'Chinese (Simplified)',
     ja: 'Japanese', ko: 'Korean', id: 'Indonesian', vi: 'Vietnamese', th: 'Thai',
+    bn: 'Bengali', fa: 'Persian (Farsi)', he: 'Hebrew', ur: 'Urdu', el: 'Greek',
+    ro: 'Romanian', cs: 'Czech', hu: 'Hungarian', fil: 'Filipino (Tagalog)', ms: 'Malay',
+    sw: 'Swahili', ta: 'Tamil',
   };
 
   // Flatten a nested dict { a: { b: 'x' } } -> { 'a.b': 'x' } so language files
@@ -81,13 +97,56 @@
     metaFor(code) { return meta[code] || meta.en; },
     modelLanguageName(code) { return MODEL_NAME[code || current] || 'English'; },
 
-    register(code, dict) { dicts[code] = flatten(dict); },
+    register(code, dict) { dicts[code] = Object.assign(flatten(dict), dicts[code] || {}); },
 
     onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+
+    // Load any AI-completed translations cached on-device for a language.
+    loadCachedAI(code) {
+      try {
+        const raw = localStorage.getItem('anchor_i18n_' + code);
+        if (raw) dicts[code] = Object.assign(dicts[code] || {}, JSON.parse(raw));
+      } catch {}
+    },
+
+    // What fraction of the English keys exist in this language (1 = complete).
+    coverage(code) {
+      const en = dicts.en || {}, d = dicts[code] || {};
+      const keys = Object.keys(en); if (!keys.length) return 1;
+      let have = 0; for (const k of keys) if (d[k] != null) have++;
+      return have / keys.length;
+    },
+
+    // Translate every missing UI string into `code` using the on-device AI, in
+    // batches, caching the result so any language can be made complete.
+    async aiTranslate(code, onProgress) {
+      if (!(window.LLM && LLM.json)) throw new Error('no-ai');
+      const en = dicts.en || {};
+      const have = dicts[code] || {};
+      const missing = Object.keys(en).filter(k => typeof en[k] === 'string' && have[k] == null);
+      const langName = MODEL_NAME[code] || (meta[code] && meta[code].name) || code;
+      const out = Object.assign({}, have);
+      const CHUNK = 36;
+      for (let i = 0; i < missing.length; i += CHUNK) {
+        const batch = missing.slice(i, i + CHUNK);
+        const src = {}; batch.forEach(k => { src[k] = en[k]; });
+        const prompt = 'Translate the VALUES of this JSON into ' + langName +
+          ' for a calm mental-wellness app. Keep every KEY exactly the same. Preserve placeholders like {name}, {n}, {value}, {temp} unchanged. Keep "|" separators if present. Return ONLY a JSON object, no prose.\n\n' + JSON.stringify(src);
+        try {
+          const res = await LLM.json(prompt, { temperature: 0.2 });
+          if (res) batch.forEach(k => { if (typeof res[k] === 'string') out[k] = res[k]; });
+        } catch (e) { /* leave English for this batch */ }
+        if (onProgress) onProgress(Math.min(missing.length, i + CHUNK), missing.length);
+      }
+      dicts[code] = out;
+      try { localStorage.setItem('anchor_i18n_' + code, JSON.stringify(out)); } catch {}
+      return out;
+    },
 
     setLang(code) {
       if (!meta[code]) code = 'en';
       current = code;
+      I18N.loadCachedAI(code);
       try { localStorage.setItem('anchor_lang', code); } catch {}
       document.documentElement.lang = code;
       document.documentElement.dir = I18N.dir;

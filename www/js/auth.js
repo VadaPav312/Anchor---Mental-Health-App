@@ -50,7 +50,7 @@
   function renderSignUp() {
     const name = E('input', { class: 'input', placeholder: t('auth.namePlaceholder'), autocapitalize: 'words', maxlength: 40 });
     const email = E('input', { class: 'input', type: 'email', placeholder: t('auth.emailPlaceholder'), autocapitalize: 'none', autocomplete: 'email' });
-    const pin = E('input', { class: 'input', type: 'tel', inputmode: 'numeric', maxlength: 4, placeholder: '••••', style: { letterSpacing: '0.5em', textAlign: 'center' } });
+    const pin = E('input', { class: 'input', type: 'password', autocomplete: 'new-password', maxlength: 64, placeholder: t('auth.pwPlaceholder'), oninput: () => UI.hapticTick() });
     frame([
       logo(),
       E('h1', { class: 'serif tac', style: { fontSize: '2.2rem', marginBottom: '6px' } }, t('auth.welcome')),
@@ -58,12 +58,13 @@
       UI.card([
         UI.field(t('set.name'), name),
         UI.field(null, email),
-        UI.field(t('auth.pinLabel'), pin),
+        UI.field(t('auth.pwLabel'), pin, t('auth.pwHint')),
       ]),
+      UI.el('div', { style: { height: '16px' } }),
       UI.btn(t('auth.createCta'), { class: 'btn-primary btn-lg', block: true, onClick: () => {
         const nm = (name.value || '').trim();
         if (!nm) { name.focus(); UI.haptic('error'); return; }
-        Store.profile.update({ account: { name: nm, email: (email.value || '').trim(), pin: (pin.value || '').replace(/\D/g, '').slice(0, 4) } });
+        Store.profile.update({ account: { name: nm, email: (email.value || '').trim(), pin: (pin.value || '') } });
         Store.profile.update({ name: nm });
         setSignedIn(true); UI.haptic('success'); finish();
       } }),
@@ -78,19 +79,19 @@
   function renderSignIn() {
     const acct = account();
     if (!acct) return render('signup');
-    const hasPin = acct.pin && acct.pin.length === 4;
-    const pin = E('input', { class: 'input', type: 'tel', inputmode: 'numeric', maxlength: 4, placeholder: '••••', style: { letterSpacing: '0.5em', textAlign: 'center', fontSize: '1.4rem' } });
+    const hasPw = !!(acct.pin && acct.pin.length);
+    const pin = E('input', { class: 'input', type: 'password', autocomplete: 'current-password', maxlength: 64, placeholder: t('auth.pwEnter'), oninput: () => UI.hapticTick() });
     const err = E('div', { class: 'tiny tac', style: { color: 'var(--bad)', minHeight: '16px', marginTop: '8px' } });
     function attempt() {
-      if (hasPin && (pin.value || '').replace(/\D/g, '') !== acct.pin) { err.textContent = t('auth.pinWrong'); UI.haptic('error'); pin.value = ''; return; }
+      if (hasPw && (pin.value || '') !== acct.pin) { err.textContent = t('auth.pwWrong'); UI.haptic('error'); pin.value = ''; return; }
       setSignedIn(true); UI.haptic('success'); finish();
     }
     frame([
       logo(),
       E('h1', { class: 'serif tac', style: { fontSize: '2.1rem', marginBottom: '4px' } }, t('auth.welcomeBack')),
       E('p', { class: 'soft tac', style: { marginBottom: '24px' } }, acct.name),
-      hasPin ? UI.card([
-        E('div', { class: 'field-label tac', style: { marginBottom: '10px' } }, t('auth.pinEnter')),
+      hasPw ? UI.card([
+        E('div', { class: 'field-label tac', style: { marginBottom: '10px' } }, t('auth.pwEnter')),
         pin, err,
       ]) : E('div', { class: 'col center', style: { marginBottom: '8px' } }, [
         E('div', { class: 'lr-ico', style: { width: '56px', height: '56px', fontSize: '1.6rem' } }, '👋'),
@@ -100,12 +101,20 @@
       E('button', { class: 'btn btn-ghost btn-block', style: { marginTop: '10px' }, onclick: () => render('signup') }, t('auth.switchToSignUp')),
       E('p', { class: 'tiny muted tac', style: { marginTop: '14px' } }, '🔒 ' + t('auth.onDevice')),
     ]);
-    if (hasPin) { setTimeout(() => pin.focus(), 250); pin.addEventListener('input', () => { if ((pin.value || '').replace(/\D/g, '').length === 4) attempt(); }); }
+    if (hasPw) { setTimeout(() => pin.focus(), 250); pin.addEventListener('keydown', (e) => { if (e.key === 'Enter') attempt(); }); }
   }
 
   function render(mode) { if (mode === 'signin') renderSignIn(); else renderSignUp(); }
 
-  function finish() { const cb = onDone; onDone = null; if (cb) cb(); }
+  // Always move the user forward after a successful sign-in. Previously, if the
+  // onDone callback had already been consumed (e.g. signing out and back in
+  // within one session), the button would silently do nothing — which read as
+  // "login is broken." Now we fall back to booting the app directly.
+  function finish() {
+    const cb = onDone; onDone = null;
+    if (cb) { try { cb(); return; } catch (e) { console.warn('auth: onDone failed', e); } }
+    if (window.App && App.startApp) { App.hideChrome(false); App.startApp(); }
+  }
 
   // ---- "Continue with Google" via Google Identity Services ----
   // Works on web origins authorized in the Google/Firebase console; on other
@@ -182,5 +191,18 @@
     if (window.App && App.gate) { App.hideChrome(true); App.gate(); }
   }
 
-  window.Auth = { isSignedIn, hasAccount, account, start, signOut };
+  // Permanently delete the account AND all on-device data, then return to the
+  // sign-up screen. Distinct from "sign out" (keeps data) and "erase data"
+  // (keeps the account).
+  async function deleteAccount() {
+    const ok = await UI.confirm(t('auth.deleteConfirm'), { danger: true, confirmLabel: t('auth.deleteAccount') });
+    if (!ok) return;
+    setSignedIn(false);
+    Store.reset();
+    try { localStorage.removeItem('anchor_lang'); } catch {}
+    UI.toast(t('auth.deleted'), 'good');
+    location.reload();
+  }
+
+  window.Auth = { isSignedIn, hasAccount, account, start, signOut, deleteAccount };
 })();

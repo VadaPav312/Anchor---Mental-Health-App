@@ -161,14 +161,18 @@
   // ---- render ---------------------------------------------------------------
 
   function render(root) {
-    const entries = recentEntries(0); // all entries
-
     // ---- page head ----
     root.appendChild(UI.el('div', { class: 'page-head' }, [
       UI.el('h1', { class: 'page-title serif' }, t('mir.title')),
       UI.el('div', { class: 'eyebrow mt1' }, t('mir.sub')),
       UI.el('div', { class: 'small soft mt2', style: { lineHeight: '1.5' } }, t('mir.intro')),
     ]));
+    renderBody(root);
+  }
+
+  // Header-less body — so The Mirror can be embedded as a tab inside Journal.
+  function renderBody(root) {
+    const entries = recentEntries(0); // all entries
 
     // ---- empty state ----
     if (Store.journal.count() < 2) {
@@ -519,7 +523,7 @@
 
   // ---- public API -----------------------------------------------------------
 
-  window.Mirror = { analyze };
+  window.Mirror = { analyze, renderBody };
 
   // ---- register -------------------------------------------------------------
 

@@ -25,7 +25,90 @@ I18N.register('en', {
     home: 'Home', sleep: 'Sleep', patterns: 'Patterns', weather: 'Inner Weather',
     experiments: 'Lab', decompress: 'Wind-down', values: 'Compass',
     mirror: 'Mirror', energy: 'Energy', journal: 'Journal', checkin: 'Check-in',
-    settings: 'Settings', more: 'More',
+    settings: 'Settings', more: 'More', menu: 'Menu', garden: 'Garden',
+    journey: 'Journey', calm: 'Calm',
+    scrollHint: 'Scroll to roll · tap to open', tapHint: 'Tap any to open',
+  },
+
+  journey: { sub: 'Look back at how far you’ve come.' },
+  calm: { sub: 'Settle your system — day or night.' },
+
+  snd: {
+    title: 'Soundscapes', tab: 'Sounds', sub: 'Colored noise for focus, calm and sleep.',
+    white: 'White', pink: 'Pink', brown: 'Red', blue: 'Blue', violet: 'Violet', green: 'Green',
+    tapToPlay: 'Tap a color to play', playing: 'Playing {name} noise',
+    volume: 'Volume', sleepTimer: 'Sleep timer', timerOff: 'Off', mins: '{n} min',
+    timerOn: 'Stops in {n} min', timerDone: 'Soundscape faded out. Sleep well.',
+    stop: 'Stop', note: 'Generated on your device — no files, no streaming.',
+    unsupported: 'Audio isn’t available here.',
+  },
+
+  prog: {
+    title: 'Progress', tab: 'Progress', sub: 'How you’re trending — read by AI.',
+    week: 'Week', month: 'Month', year: 'Year',
+    aiTitle: 'AI progress check', thinking: 'Reading your trends…',
+    avgSleep: 'Avg sleep', checkins: 'Check-ins', vitality: 'Energy',
+    improving: 'Improving', dipping: 'Dipping', steady: 'Steady',
+    win: 'A real win', focus: 'Focus next',
+    needData: 'Log a few days and your AI progress check appears here.',
+    needKey: 'Add an AI key in Settings to unlock progress reflections.',
+  },
+
+  vit: {
+    title: 'Energy', sub: 'Rest + movement → how you feel',
+    high: 'Charged', steady: 'Steady', low: 'Running low',
+    mindHigh: 'Good rest and movement — your mind has fuel today. A great window for the things that matter.',
+    mindSteady: 'You’re holding steady. Enough in the tank for the day; protect it where you can.',
+    mindLow: 'Low energy makes everything feel heavier — that’s biology, not failure. Here’s the smallest lever:',
+    leverHigh: 'Ride it — do one meaningful thing while you’re fueled.',
+    leverSteady: 'A short walk or a glass of water keeps the needle up.',
+    leverSleep: 'Tonight’s sleep is your biggest lever — aim for an earlier wind-down.',
+    leverMove: 'A 10-minute walk now will lift both energy and mood.',
+    leverRest: 'You’ve spent a lot — take 15 minutes of real rest.',
+    breakdown: 'Rest {rest} · Move {move} · Balance {ledger}',
+    logActivity: 'Log activity', loggedMove: 'Nice — movement logged.', loggedRest: 'Rest counts. Logged.',
+    move: 'Moved', rest: 'Rested', light: 'Light', moderate: 'Moderate', intense: 'Intense',
+  },
+
+  sos: {
+    button: 'Emergency', title: 'Get help now',
+    sub: 'If you or someone else is in danger, reach a real person immediately.',
+    callServices: 'Call emergency services ({n})', callCrisis: 'Call crisis line ({n})',
+    textCrisis: 'Text crisis line ({n})', region: 'Your region', regionSub: 'Sets the right emergency numbers.',
+    confirm: 'Call {n} now?', holdSafe: 'You matter. Help is real and it works.',
+  },
+
+  privacy: {
+    title: 'Before we begin', heading: 'Privacy Policy & Terms of Use',
+    body:
+      'Last updated: 2026. Please read these Terms of Use and this Privacy Policy ("Terms") carefully. By tapping "Agree & continue," creating an account, or using Anchor (the "App"), you ("you," "User") acknowledge that you have read, understood, and agree to be bound by these Terms. If you do not agree, do not use the App.\n\n' +
+      '1. NOT MEDICAL, MENTAL-HEALTH, OR CRISIS CARE. Anchor is a self-reflection and wellbeing companion. It is NOT a medical device, and it does NOT provide medical advice, diagnosis, treatment, therapy, counseling, or crisis intervention. Nothing in the App is a substitute for professional advice from a qualified physician, therapist, psychiatrist, or other licensed provider. Never disregard or delay seeking professional advice because of something you read or generated in the App. Always consult a qualified professional for any medical or mental-health concern.\n\n' +
+      '2. EMERGENCIES. Anchor cannot help in an emergency. If you or anyone else may be in danger, is considering self-harm or suicide, or is experiencing a medical or psychiatric emergency, immediately call your local emergency services (e.g. 911 in the US) or a crisis line (e.g. 988 in the US), or go to the nearest emergency room. The App may surface third-party helpline numbers for convenience only; we do not operate, endorse, or guarantee them.\n\n' +
+      '3. ELIGIBILITY & AGE. You must be at least 16 years old (or the age of digital consent in your jurisdiction) to use the App. By using it you represent that you meet this requirement and that all information you provide is accurate.\n\n' +
+      '4. PRIVACY — ON-DEVICE DATA. Anchor is built to keep your data on your device. Your check-ins, journals, sleep, energy, values, activity, and settings are stored locally in your device’s storage and are not transmitted to us. We do not sell, rent, or share your personal data. You can export or permanently erase all of your data at any time in Settings, and deleting the App removes its local data.\n\n' +
+      '5. AI REFLECTION. Some features (e.g. the AI briefing, progress reflections, and value nudges) send the specific text and summary statistics you choose to generate a reflection to a third-party AI provider for processing. Only that content leaves your device, and only when you trigger such a feature. Do not include information you would not want processed by a third party. AI output is generated automatically, may be inaccurate, incomplete, or inappropriate, and must not be relied upon as fact or as professional advice.\n\n' +
+      '6. THIRD-PARTY SERVICES. The App may use third-party services such as sign-in providers, an AI provider, weather data, mapping/geolocation, and platform APIs (e.g. Apple). Your use of those services is governed by their own terms and privacy policies. We are not responsible for third-party services, their availability, or their handling of any data.\n\n' +
+      '7. LOCATION. If you enable it, the App may use your approximate location solely to show local weather and the correct regional emergency numbers and units. Location is processed on-device and is not stored on our servers.\n\n' +
+      '8. NO WARRANTIES. THE APP IS PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, ACCURACY, RELIABILITY, NON-INFRINGEMENT, OR THAT THE APP WILL BE UNINTERRUPTED, SECURE, OR ERROR-FREE. You use the App at your own sole risk and discretion.\n\n' +
+      '9. LIMITATION OF LIABILITY. TO THE FULLEST EXTENT PERMITTED BY LAW, THE MAKERS, DEVELOPERS, CONTRIBUTORS, AND DISTRIBUTORS OF ANCHOR ("WE," "US") SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR ANY LOSS OF PROFITS, DATA, GOODWILL, OR OTHER INTANGIBLE LOSSES, OR FOR ANY PERSONAL INJURY, EMOTIONAL DISTRESS, OR DEATH, ARISING OUT OF OR RELATING TO YOUR USE OF (OR INABILITY TO USE) THE APP, ANY AI OUTPUT, OR ANY DECISIONS YOU MAKE BASED ON THE APP, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. OUR TOTAL AGGREGATE LIABILITY FOR ANY CLAIM SHALL NOT EXCEED THE GREATER OF THE AMOUNT YOU PAID FOR THE APP (IF ANY) OR US $10. Some jurisdictions do not allow certain limitations, so some of the above may not apply to you.\n\n' +
+      '10. ASSUMPTION OF RISK & RELEASE. You knowingly and voluntarily assume all risks associated with using the App and any reliance on its content or AI output. To the fullest extent permitted by law, you release us from any and all claims, demands, and damages arising from such use.\n\n' +
+      '11. INDEMNIFICATION. You agree to indemnify, defend, and hold harmless the makers of Anchor from and against any claims, liabilities, damages, losses, and expenses (including reasonable legal fees) arising out of or related to your use of the App or your violation of these Terms.\n\n' +
+      '12. ACCEPTABLE USE. You agree not to misuse the App, including by attempting to reverse engineer it (except where permitted by law), interfering with its operation, using it unlawfully, or relying on it to make safety-critical or clinical decisions.\n\n' +
+      '13. INTELLECTUAL PROPERTY. The App and its content are protected by applicable intellectual-property laws. You retain ownership of the content you create; the App claims no ownership over your private entries.\n\n' +
+      '14. CHANGES. We may update the App and these Terms from time to time. Continued use after changes become effective constitutes acceptance of the updated Terms.\n\n' +
+      '15. GOVERNING LAW & SEVERABILITY. These Terms are governed by the laws applicable in your place of residence to the extent required, otherwise by general principles of contract law, without regard to conflict-of-laws rules. If any provision is held unenforceable, the remaining provisions remain in full force.\n\n' +
+      '16. ACKNOWLEDGEMENT. By continuing, you confirm that you understand Anchor offers reflections and patterns — never diagnoses — and that you are solely responsible for your own health, safety, and decisions.',
+    agree: 'I have read and agree to the Privacy Policy & Terms of Use', cta: 'Agree & continue',
+    mustAgree: 'Please agree to the terms to continue.', view: 'Privacy & terms',
+  },
+
+  // daily sleep quick-prompt
+  slp: {
+    morningTitle: 'How did you sleep?', morningSub: 'A quick read on last night.',
+    quality: 'Restfulness', hours: 'Hours', save: 'Save night', skip: 'Not now',
+    rough: 'Rough', okay: 'Okay', solid: 'Solid', great: 'Great',
+    mode: 'Sleep tracking', modeAsk: 'Ask me each morning', modeAccessory: 'From my devices',
+    accessoryNote: 'Device sync uses Apple Health on iOS (set up in the Health app).',
   },
 
   care: {
@@ -59,6 +142,8 @@ I18N.register('en', {
     privacyOnDevice: 'Stored on-device',
     privacyNoAccount: 'No account needed',
     privacyExport: 'Export or erase anytime',
+    colorTitle: 'Pick your color',
+    colorSub: 'This becomes the background tone of your whole app — change it anytime in Settings.',
     valuesTitle: 'What matters most to you?',
     valuesSub: 'Pick a few values that you want your days to point toward. Anchor uses these as your compass.',
     valuesAddOwn: 'Add your own',
@@ -84,10 +169,10 @@ I18N.register('en', {
   },
 
   gam: {
-    level: 'Level {n}', lvlShort: 'Lv {n}', xp: '{n} XP', toNext: '{n} XP to {name}',
-    levelUp: 'Level up!', reached: 'You reached {name}',
+    level: 'Level {n}', lvlShort: 'Lv {n}', lvN: 'Level {n}', xp: '{n} XP', toNext: '{n} XP to {name}',
+    levelUp: 'Level up!', levelUpSub: 'You showed up again — and it adds up. A new title, a little more light.', reached: 'You reached {name}',
     journey: 'Your journey', earned: '+{n} XP', maxLevel: 'Fully anchored',
-    names: 'First light|Settling in|Finding rhythm|Taking root|Steady current|Anchored|Still waters|Lighthouse|North star',
+    names: 'First light|Settling in|Finding rhythm|Taking root|Steady current|Anchored|Still waters|Lighthouse|North star|Tidekeeper|Moonlit|Deep harbor|Aurora|Constellation|Far horizon|Boundless',
     why: 'You earn light for showing up — check-ins, journaling, winding down, and tending your days.',
   },
 
@@ -115,6 +200,8 @@ I18N.register('en', {
     forecastPeek: 'Your forecast',
     valuesToday: 'Living your values',
     continueExp: 'Experiment in progress',
+    arrangeHint: 'Drag your widgets to reorder',
+    swipeHint: 'Swipe ← → to switch sections',
   },
 
   sleep: {
@@ -243,6 +330,13 @@ I18N.register('en', {
     sub: 'Live truer, not just feel better.',
     intro: 'Most apps chase mood. Anchor helps you live in line with what matters — a steadier anchor than any feeling.',
     myValues: 'My values', editValues: 'Edit values', addValue: 'Add a value',
+    targetsSub: 'Each value has a weekly goal — Anchor tracks how close you are.',
+    onTrack: 'On track', weekGoal: 'Goal: {n}×/wk', thisWeek: 'this week',
+    targetLabel: 'Days per week',
+    nudgeTitle: 'A nudge toward your values',
+    nudgeBehind: 'You’re {n} day(s) behind on “{value}” this week.',
+    nudgeCta: 'A small way to live “{value}” today',
+    nudgeThinking: 'Finding a small step…', nudgeFor: 'Today, for “{value}”', nudgeAnother: 'Another idea',
     checkTitle: 'Today’s compass check',
     checkSub: 'No guilt — just curiosity. Which values did you get to live out?',
     livedOut: 'Got to live this', crowdedOut: 'Got crowded out',
@@ -297,6 +391,7 @@ I18N.register('en', {
   jour: {
     title: 'Journal',
     sub: 'Your own words, kept and understood.',
+    tabWrite: 'Write',
     newEntry: 'New entry', placeholder: 'How was today? What’s on your mind?',
     prompt: 'Need a prompt?', prompts: 'Reflection prompts',
     saveEntry: 'Save entry', analyzing: 'Reading between the lines…',
@@ -323,14 +418,18 @@ I18N.register('en', {
     welcomeBack: 'Welcome back',
     signIn: 'Sign in', signUp: 'Create account', signOut: 'Sign out',
     namePlaceholder: 'Your name', emailPlaceholder: 'Email (optional)',
-    pinLabel: 'Set a 4-digit passcode (optional)', pinEnter: 'Enter your passcode',
-    pinWrong: 'That passcode didn’t match', pinSkip: 'No passcode',
+    pwLabel: 'Set a password (optional)', pwHint: 'Any length you like — choose something only you would guess.',
+    pwPlaceholder: 'Choose a password', pwEnter: 'Enter your password',
+    pwWrong: 'That password didn’t match',
     createCta: 'Create my account', signInCta: 'Continue',
     switchToSignUp: 'New here? Create an account', switchToSignIn: 'Already have an account? Sign in',
     signedOut: 'Signed out. Your data stays safe on this device.',
     signOutConfirm: 'Sign out? Your data stays on this device and you can sign back in anytime.',
     onDevice: 'On-device account — no servers, no password sent anywhere.',
     guest: 'Just exploring', lockedTitle: 'Anchor is locked',
+    deleteAccount: 'Delete account', deleteSub: 'Permanently removes your account and every bit of data from this device. This cannot be undone.',
+    deleteConfirm: 'Delete your account and ALL your data on this device? This is permanent and can’t be undone.',
+    deleted: 'Account deleted. Take care of yourself.',
   },
 
   hub: {
@@ -340,6 +439,7 @@ I18N.register('en', {
     resource: 'Steady yourself', resourceSub: 'Tools for the fuller and the harder days',
     account: 'Account & settings',
     streakCard: '{n}-day streak', daysWith: '{n} days with Anchor',
+    searchPlaceholder: 'Search features…', noResults: 'No matches',
   },
 
   outside: {
@@ -355,13 +455,25 @@ I18N.register('en', {
     profile: 'Profile', name: 'Name',
     account: 'Account', signedInAs: 'Signed in as {name}',
     language: 'Language', languageSub: 'The whole app, in your language.',
+    aiTranslate: 'Complete {lang} with AI ✨', aiTranslateSub: 'Translate the rest of the app into your language on-device ({pct}% done).',
+    aiTranslating: 'Translating… {pct}%', aiTransUnavail: 'Some strings will show in English. AI translation needs an AI connection.',
     liveTranslate: 'Translate AI replies to my language',
     appearance: 'Appearance', theme: 'Theme', themeAurora: 'Aurora (dark)', themeDaylight: 'Daylight',
-    accent: 'Color', accentSub: 'The gradient that runs through everything.',
+    access: 'Accessibility', safety: 'Safety',
+    fontSize: 'Text size', fontSizeSub: 'Larger text, easier on the eyes.',
+    fontS: 'Small', fontM: 'Default', fontL: 'Large', fontXL: 'XL',
+    tts: 'Read aloud', ttsSub: 'Show a speaker button to hear AI text.',
+    density: 'Spacing', densitySub: 'How much room each card and widget gets.',
+    densityCompact: 'Compact', densityCozy: 'Cozy', densitySpacious: 'Spacious',
+    doodles: 'Background art', doodlesSub: 'Soft line-art woven into the backdrop.',
+    bgStyle: 'Background', bgStyleSub: 'Animated gradient or a clean plain color.',
+    bgGradient: 'Gradient', bgPlain: 'Plain',
+    accent: 'Color', accentSub: 'Sets the background tone of the whole app.',
     accentAurora: 'Aurora', accentSunset: 'Sunset', accentForest: 'Forest', accentOcean: 'Ocean', accentRose: 'Rose', accentGold: 'Gold', accentMono: 'Mono',
+    accentLavender: 'Lavender', accentEmber: 'Ember', accentTeal: 'Teal', accentSky: 'Sky', accentBerry: 'Berry', accentSand: 'Sand', accentMint: 'Mint', accentSlate: 'Slate',
     sleepSchedule: 'Sleep schedule', bedtime: 'Bedtime', wakeTime: 'Wake time',
     bedtimeSub: 'After wind-down, Anchor rests in goodnight mode until your wake time.',
-    location: 'Location weather', locationSub: 'Local weather for outdoor nudges. Stays on your device.',
+    location: 'Location weather', locationSub: 'Enable location to see your live local weather.', locationRefresh: 'Refresh weather',
     demoData: 'Demo data (for showing Anchor off)', demoLoad: 'Load demo data', demoClear: 'Clear & start fresh',
     units: 'Units', tempUnit: 'Temperature', celsius: 'Celsius', fahrenheit: 'Fahrenheit',
     device: 'AI & Device',
@@ -390,7 +502,7 @@ I18N.register('en', {
   },
 
   rev: {
-    title: 'Weekly Review',
+    title: 'Weekly Review', tab: 'Review',
     sub: 'Your week, gathered and gently understood.',
     intro: 'Once a week, Anchor pulls the threads together — what your sleep, mood, energy and values were doing, and what it all might mean.',
     thisWeek: 'This week', lastWeek: 'Last week', pickWeek: 'Choose a week',
@@ -450,11 +562,22 @@ I18N.register('en', {
     today: 'Today', loadMore: 'Show earlier',
   },
 
+  intro: {
+    title: 'Welcome aboard, {name}',
+    sub: 'A 20-second look at how Anchor is laid out — then a hands-on tour of every feature.',
+    navTitle: 'The bloom menu', navDesc: 'There’s no row of tabs. Tap the glowing orb at the bottom and it blooms open into everywhere you can go. Tap it again to close.',
+    hubTitle: 'The “You” space', hubDesc: 'Open the bloom and tap “You” — your journal, experiments, garden, milestones and settings all live there.',
+    careTitle: 'Help is always one tap away', careDesc: 'The ♥ at the top is a lifeline: real human support and a calming reset, whenever you need them.',
+    cta: 'Show me around', skip: 'Skip for now',
+  },
+
   tour: {
     title: 'Welcome to Anchor', sub: 'A quick tour of what’s inside.',
     start: 'Take the tour', step: '{n} of {total}',
     next: 'Next', back: 'Back', done: 'Start using Anchor', skip: 'Skip tour', open: 'Open',
     again: 'Replay the tour',
+    coachHint: 'This is the real screen — look around, then tap Next.',
+    finishTitle: 'You’re all set', finishSub: 'That’s the tour. Everything’s where you just saw it — enjoy.',
     home_t: 'Home', home_d: 'Your daily anchor point — today’s inner weather, last night’s sleep, your energy, and the one thing Anchor noticed.',
     weather_t: 'Inner Weather', weather_d: 'Your emotional history as a landscape you can walk back through. Tap any day to peel back its layers.',
     patterns_t: 'Pattern Detective', patterns_d: 'Finds the delayed causes behind how you feel — like a warm room tonight dragging your mood down two days later.',
@@ -467,6 +590,8 @@ I18N.register('en', {
     energy_t: 'Energy Budget', energy_d: 'Track what drains and restores you, and learn your personal energy economy.',
     toolkit_t: 'Grounding', toolkit_d: 'Short, guided calming exercises for the harder moments — breathing, senses, self-compassion.',
     garden_t: 'Your Garden', garden_d: 'Everything you tend grows a one-of-a-kind garden and unlocks milestones over time.',
+    calm_t: 'Calm', calm_d: 'Your place to settle — the nightly wind-down ritual and quick grounding exercises, together.',
+    journey_t: 'Journey', journey_d: 'Look back at how far you’ve come — your timeline, weekly reviews, and the garden that grows as you do.',
     care_t: 'Support, always', care_d: 'The ♥ in the top bar is a lifeline — real human help and a calming reset, one tap away. Anchor is a companion, never a clinician.',
   },
 

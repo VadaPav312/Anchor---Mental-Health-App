@@ -19,7 +19,15 @@
         if (k === 'class' || k === 'className') node.className = v;
         else if (k === 'html') node.innerHTML = v;
         else if (k === 'text') node.textContent = v;
-        else if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+        else if (k === 'style' && typeof v === 'object') {
+          // Object.assign can't set CSS custom properties (--var); route those
+          // through setProperty so things like radial-menu positions actually apply.
+          for (const sk in v) {
+            if (v[sk] == null) continue;
+            if (sk.charCodeAt(0) === 45 && sk.charCodeAt(1) === 45) node.style.setProperty(sk, v[sk]);
+            else node.style[sk] = v[sk];
+          }
+        }
         else if (k === 'dataset') Object.assign(node.dataset, v);
         else if (k.slice(0, 2) === 'on' && typeof v === 'function') node.addEventListener(k.slice(2).toLowerCase(), v);
         else if (k in node && k !== 'list') { try { node[k] = v; } catch { node.setAttribute(k, v); } }
@@ -43,7 +51,32 @@
   function haptic(style) {
     const H = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
     if (H) { try { (style === 'success' || style === 'warning' || style === 'error') ? H.notification({ type: style.toUpperCase() }) : H.impact({ style: (style || 'light').toUpperCase() }); } catch {} }
-    else if (navigator.vibrate) { try { navigator.vibrate(style === 'heavy' ? 18 : 8); } catch {} }
+    else if (navigator.vibrate) { try { navigator.vibrate(style === 'heavy' ? 18 : style === 'medium' ? 12 : style === 'tick' ? 4 : 8); } catch {} }
+  }
+  // play a timed cadence of impacts — e.g. a "ta-da" on a real win
+  function hapticSeq(steps) {
+    let t = 0;
+    (steps || []).forEach(s => { t += s.delay || 0; setTimeout(() => haptic(s.style || 'light'), t); });
+  }
+  // a rhythmic, multi-layered success cadence for finishing something big
+  function hapticSuccess() {
+    hapticSeq([{ style: 'light', delay: 0 }, { style: 'medium', delay: 80 }, { style: 'heavy', delay: 90 }, { style: 'success', delay: 120 }]);
+  }
+  // ultra-light "key" feedback for custom inputs (PIN/password), mechanical feel
+  function hapticTick() { haptic('tick'); }
+  // a faint repeating pulse that "hums" along with a loading shimmer
+  let _hum = null;
+  function startHum() { if (_hum) return; _hum = setInterval(() => haptic('tick'), 680); }
+  function stopHum() { if (_hum) { clearInterval(_hum); _hum = null; } }
+  // long-press helper: fires a snappy "pop" and the callback when held
+  function longPress(el, onLong, ms) {
+    ms = ms || 500; let timer = null, fired = false;
+    const start = () => { fired = false; timer = setTimeout(() => { fired = true; haptic('medium'); onLong(); }, ms); };
+    const cancel = () => { clearTimeout(timer); };
+    el.addEventListener('touchstart', start, { passive: true });
+    el.addEventListener('mousedown', start);
+    ['touchend', 'touchmove', 'mouseup', 'mouseleave'].forEach(ev => el.addEventListener(ev, cancel, { passive: true }));
+    return () => cancel();
   }
 
   // ---- toast --------------------------------------------------------------
@@ -293,7 +326,8 @@
   function weatherName(code) { return t('wx.weather' + (code ? code[0].toUpperCase() + code.slice(1) : 'Cloud')); }
 
   window.UI = {
-    el, frag, clear, mount, append, haptic, toast, sheet, modal, confirm,
+    el, frag, clear, mount, append, haptic, hapticSeq, hapticSuccess, hapticTick, startHum, stopHum, longPress,
+    toast, sheet, modal, confirm,
     ring, sparkline, bars, segmented, chips, spinner, thinking, empty,
     card, tile, btn, field, row, switchToggle, withLoading, fmt,
     weatherEmoji, weatherName, WX,

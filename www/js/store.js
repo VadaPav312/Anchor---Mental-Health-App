@@ -28,12 +28,21 @@
       profile: { name: '', createdAt: null, onboarded: false, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'local' },
       settings: {
         lang: null, theme: 'aurora', tempUnit: 'F',
+        accent: 'aurora', density: 'spacious', doodles: true,
+        fontScale: 1,                 // eyesight: 0.9 | 1 | 1.15 | 1.3
+        tts: true,                    // read-aloud available
+        sleepTracking: 'ask',         // 'ask' (prompt each morning) | 'accessory'
+        region: 'US',                 // for emergency numbers
+        emergency: { services: '911', crisis: '988', crisisText: '741741' },
+        privacyAccepted: false,
         llmKey: '', llmModel: '',
         liveTranslate: false,
+        dashHidden: [],               // hidden home widgets
         reminders: { windDown: { on: false, hour: 21, minute: 30 }, checkin: { on: false, hour: 19, minute: 0 } },
       },
+      activity: [],                   // [{ id, ts, date, kind:'move'|'rest', level(1-3), label }]
       values: [],
-      sleep: [], moods: [], journal: [], energy: [],
+      sleep: [], moods: [], journal: [], energy: [], activity: [],
       decompress: [], experiments: [], valuesChecks: [],
       insights: [], investigations: [], profileWins: [],
       gamification: { streak: 0, lastActive: null, longest: 0 },
@@ -115,7 +124,7 @@
     // ---- values ----
     values: {
       all() { return state.values; },
-      add(name, why) { const v = { id: uid(), name, why: why || '' }; state.values.push(v); touch('values'); return v; },
+      add(name, why, target) { const v = { id: uid(), name, why: why || '', target: target || 4 }; state.values.push(v); touch('values'); return v; },
       update(id, patch) { const v = state.values.find(x => x.id === id); if (v) Object.assign(v, patch); touch('values'); return v; },
       remove(id) { state.values = state.values.filter(x => x.id !== id); touch('values'); },
       set(list) { state.values = list; touch('values'); },
@@ -150,7 +159,7 @@
   };
 
   // attach streams
-  ['sleep', 'moods', 'journal', 'energy', 'decompress', 'experiments', 'valuesChecks', 'insights', 'investigations', 'profileWins'].forEach(n => {
+  ['sleep', 'moods', 'journal', 'energy', 'activity', 'decompress', 'experiments', 'valuesChecks', 'insights', 'investigations', 'profileWins'].forEach(n => {
     Store[n] = Store._stream(n);
   });
 
@@ -241,6 +250,41 @@
   };
 
   Store.derive.lastSleep = function () { return state.sleep.length ? state.sleep[state.sleep.length - 1] : null; };
+
+  // ---- VITALITY: an energy bar from rest + physical activity, tied to mind ---
+  // Combines last night's rest, today's movement, and the energy ledger into a
+  // single 0-100 "energy" reading, plus a plain-language read on what it means
+  // for mood and one concrete lever to raise it.
+  Store.derive.vitality = function () {
+    const s = Store.derive.lastSleep();
+    // rest component (0-45): sleep score + duration sweet-spot bonus
+    let rest = 0;
+    if (s) {
+      rest = Math.round((s.score || 0) * 0.32);                 // up to ~32
+      const h = (s.durationMin || 0) / 60;
+      rest += (h >= 7 && h <= 9) ? 13 : (h >= 6 && h <= 9.5 ? 8 : 3); // up to 45
+    } else { rest = 16; }                                        // unknown → neutral-low
+    // movement component (0-35): today's logged physical activity
+    const act = state.activity.filter(a => a.date === today());
+    const move = act.filter(a => a.kind === 'move').reduce((n, a) => n + (a.level || 1), 0);
+    const restLog = act.filter(a => a.kind === 'rest').reduce((n, a) => n + (a.level || 1), 0);
+    let movement = Math.min(28, move * 7);                       // light=7, moderate=14, intense=21+
+    if (move >= 6) movement = Math.min(30, movement - (move - 6) * 3); // overtraining dampener
+    movement += Math.min(7, restLog * 3);                        // intentional rest helps too
+    // ledger component (0-20): net restores vs drains today
+    const e = Store.derive.energyToday();
+    const ledger = Math.max(0, Math.min(20, 10 + (e.net || 0) * 2));
+    let score = Math.round(rest + Math.min(35, movement) + ledger);
+    score = Math.max(2, Math.min(100, score));
+
+    const band = score >= 75 ? 'high' : score >= 45 ? 'steady' : 'low';
+    // tie to mental health + one lever
+    let read, lever;
+    if (band === 'high') { read = 'mindHigh'; lever = 'leverHigh'; }
+    else if (band === 'steady') { read = 'mindSteady'; lever = 'leverSteady'; }
+    else { read = 'mindLow'; lever = (!s || (s && s.score < 60)) ? 'leverSleep' : (move < 1 ? 'leverMove' : 'leverRest'); }
+    return { score, band, rest, movement: Math.min(35, movement), ledger, read, lever, hasSleep: !!s, movedToday: move > 0 };
+  };
 
   Store.derive.activeExperiment = function () { return state.experiments.find(e => e.status === 'running') || null; };
 

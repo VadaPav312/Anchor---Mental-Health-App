@@ -141,11 +141,38 @@
       Store.settings.update({ liveTranslate: val });
     });
 
+    // AI translation completion — fills any missing UI strings in the current
+    // language (and powers the AI-only languages), on-device.
+    function aiCompleteRow() {
+      const cur = I18N.lang;
+      if (cur === 'en') return null;
+      const cov = I18N.coverage(cur);
+      if (cov >= 0.985) return null;
+      if (!(window.LLM && LLM.configured && LLM.configured())) {
+        return UI.el('div', { class: 'tiny muted', style: { padding: '8px 2px', lineHeight: '1.5' } }, t('set.aiTransUnavail'));
+      }
+      const meta = I18N.metaFor(cur);
+      const wrap = UI.el('div', { style: { padding: '6px 0 2px' } });
+      const btn = UI.btn(t('set.aiTranslate', { lang: meta.native }), { class: 'btn-ghost btn-sm', icon: 'spark' });
+      const note = UI.el('div', { class: 'tiny muted', style: { marginTop: '6px', lineHeight: '1.45' } }, t('set.aiTranslateSub', { pct: Math.round(cov * 100) }));
+      btn.onclick = async function () {
+        btn.disabled = true;
+        await I18N.aiTranslate(cur, function (done, total) { btn.textContent = t('set.aiTranslating', { pct: Math.round(done / total * 100) }); });
+        Store.set('settings._i18nDone.' + cur, true);
+        UI.haptic('success'); UI.toast(t('app.saved'), 'good');
+        if (window.App) App.applyTheme();
+        Anchor.refresh();
+      };
+      wrap.append(btn, note);
+      return wrap;
+    }
+
     return [
       sectionHead('set.language'),
       UI.el('div', { class: 'glass-card card col gap3' }, [
         UI.el('div', { class: 'small soft', style: { marginBottom: '4px' } }, t('set.languageSub')),
         buildPicker(),
+        aiCompleteRow(),
         divider(),
         UI.el('div', { style: { padding: '4px 0' } }, [
           rowItem(t('set.liveTranslate'), liveTransToggle, null),
@@ -178,13 +205,104 @@
       if (window.Anchor) Anchor.refresh();
     });
 
+    // Spacing density — lets the user breathe out a cluttered screen or pack
+    // more in. Applies instantly across every view.
+    const densitySeg = UI.segmented([
+      { value: 'compact', label: t('set.densityCompact') },
+      { value: 'cozy', label: t('set.densityCozy') },
+      { value: 'spacious', label: t('set.densitySpacious') },
+    ], settings.density || 'cozy', function (val) {
+      Store.settings.update({ density: val });
+      if (window.App && App.applyDensity) App.applyDensity();
+      UI.haptic('light');
+    });
+
+    // Background style — animated gradient vs. clean plain color.
+    const bgSeg = UI.segmented([
+      { value: 'gradient', label: t('set.bgGradient') },
+      { value: 'plain', label: t('set.bgPlain') },
+    ], settings.bgStyle || 'gradient', function (val) {
+      Store.settings.update({ bgStyle: val });
+      if (window.App && App.applyBgStyle) App.applyBgStyle();
+      UI.haptic('light');
+    });
+
+    // Background line-art toggle.
+    const doodleToggle = UI.switchToggle(settings.doodles !== false, function (val) {
+      Store.settings.update({ doodles: val });
+      if (window.App && App.applyDoodles) App.applyDoodles();
+    });
+
+    const densityBlock = UI.el('div', {}, [
+      iconRow('grid', t('set.density'), t('set.densitySub'), null),
+      UI.el('div', { style: { padding: '0 16px 12px' } }, [densitySeg]),
+    ]);
+
     return [
       sectionHead('set.appearance'),
       glassSection([
         iconRow('sun', t('set.theme'), null,
           UI.el('div', { style: { flexShrink: '0' } }, [themeSeg])),
+        iconRow('grid', t('set.bgStyle'), t('set.bgStyleSub'),
+          UI.el('div', { style: { flexShrink: '0' } }, [bgSeg])),
+        densityBlock,
+        iconRow('spark', t('set.doodles'), t('set.doodlesSub'), doodleToggle),
         iconRow('thermo', t('set.tempUnit'), null,
           UI.el('div', { style: { flexShrink: '0' } }, [tempSeg])),
+      ]),
+    ];
+  }
+
+  // ---- ACCESSIBILITY & SAFETY ----------------------------------------------
+  function accessSection() {
+    const s = Store.settings.get();
+
+    const fontSeg = UI.segmented([
+      { value: '0.9', label: t('set.fontS') }, { value: '1', label: t('set.fontM') },
+      { value: '1.15', label: t('set.fontL') }, { value: '1.3', label: t('set.fontXL') },
+    ], String(s.fontScale || 1), function (val) {
+      Store.settings.update({ fontScale: +val });
+      if (window.App && App.applyFontScale) App.applyFontScale();
+      UI.haptic('light');
+    });
+
+    const ttsToggle = UI.switchToggle(s.tts !== false, function (v) { Store.settings.update({ tts: v }); });
+
+    const sleepSeg = UI.segmented([
+      { value: 'ask', label: t('slp.modeAsk') }, { value: 'accessory', label: t('slp.modeAccessory') },
+    ], s.sleepTracking || 'ask', function (val) {
+      Store.settings.update({ sleepTracking: val });
+      if (val === 'accessory') UI.toast(t('slp.accessoryNote'), 'good');
+    });
+
+    const regions = (window.Crisis && Crisis.REGIONS) || {};
+    const regionSel = UI.el('select', { class: 'select', style: { width: '180px' }, onchange: function (e) {
+      const code = e.target.value, r = regions[code];
+      Store.settings.update({ region: code, emergency: { services: r.services, crisis: r.crisis, crisisText: r.crisisText }, tempUnit: code === 'US' ? 'F' : 'C' });
+      UI.toast(t('app.saved'), 'good');
+      if (window.Anchor) Anchor.refresh();
+    } }, Object.keys(regions).map(code => UI.el('option', { value: code, selected: code === (s.region || 'US') }, regions[code].label)));
+
+    return [
+      sectionHead('set.access'),
+      glassSection([
+        UI.el('div', {}, [iconRow('sun', t('set.fontSize'), t('set.fontSizeSub'), null), UI.el('div', { style: { padding: '0 16px 12px' } }, [fontSeg])]),
+        UI.el('div', {}, [iconRow('sound', t('slp.mode'), t('slp.accessoryNote'), null), UI.el('div', { style: { padding: '0 16px 12px' } }, [sleepSeg])]),
+        iconRow('sound', t('set.tts'), t('set.ttsSub'), ttsToggle),
+      ]),
+      sectionHead('set.safety'),
+      glassSection([
+        iconRow('heart', t('sos.region'), t('sos.regionSub'), regionSel),
+        UI.el('div', { style: { padding: '10px 16px 14px' } }, [
+          UI.btn(t('sos.button'), { class: 'btn-block btn-danger', icon: 'heart', onClick: function () { if (window.Crisis) Crisis.sos(); } }),
+        ]),
+        UI.el('div', { style: { padding: '4px 16px 14px' } }, [
+          UI.btn(t('privacy.view'), { class: 'btn-ghost btn-sm', icon: 'book', onClick: function () {
+            UI.modal({ title: t('privacy.heading'), body: UI.el('div', { style: { maxHeight: '60dvh', overflowY: 'auto' } },
+              (t('privacy.body') || '').split('\n').filter(Boolean).map(p => UI.el('p', { class: 'small soft', style: { lineHeight: '1.6', marginBottom: '10px' } }, p))),
+              actions: [UI.el('button', { class: 'btn btn-primary btn-sm', onclick: function () { document.querySelector('.modal-host').classList.remove('open'); } }, t('app.done'))] });
+          } }),
+        ]),
       ]),
     ];
   }
@@ -496,7 +614,7 @@
   // ---- accent / color gradient picker --------------------------------------
   function accentSection() {
     const ACCENTS = (window.App && App.ACCENTS) || {};
-    const order = ['aurora', 'sunset', 'forest', 'ocean', 'rose', 'gold', 'mono'];
+    const order = ['aurora', 'sunset', 'forest', 'ocean', 'rose', 'gold', 'mono', 'lavender', 'ember', 'teal', 'sky', 'berry', 'sand', 'mint', 'slate'];
     const current = Store.get('settings.accent', 'aurora');
     const swatches = UI.el('div', { class: 'row wrap gap3', style: { padding: '12px 16px' } },
       order.filter(id => ACCENTS[id]).map(id => {
@@ -556,25 +674,79 @@
       sectionHead('set.account'),
       glassSection([
         acct ? iconRow('user', t('set.signedInAs', { name: acct.name }), acct.email || t('auth.onDevice'), null) : null,
-        UI.el('div', { style: { padding: '12px 16px 14px' } }, [
+        UI.el('div', { style: { padding: '12px 16px 6px' } }, [
           UI.btn(t('auth.signOut'), { class: 'btn-block', icon: 'lock', onClick: () => Auth.signOut() }),
+        ]),
+        UI.el('div', { style: { padding: '6px 16px 14px' } }, [
+          UI.btn(t('auth.deleteAccount'), { class: 'btn-block btn-danger', icon: 'trash', onClick: () => Auth.deleteAccount() }),
+          UI.el('div', { class: 'tiny muted', style: { marginTop: '8px', textAlign: 'center', lineHeight: '1.45' } }, t('auth.deleteSub')),
         ]),
       ]),
     ];
   }
 
-  // ---- location weather ----------------------------------------------------
+  // ---- location weather (big, animated, live scene) ------------------------
+  function skyGradient(cond, isDay) {
+    if (!isDay) return 'linear-gradient(180deg,#0a1030,#1a2350 70%,#26315e)';
+    switch (cond) {
+      case 'rainy': case 'stormy': return 'linear-gradient(180deg,#3a4360,#5a6585)';
+      case 'cloudy': case 'foggy': return 'linear-gradient(180deg,#5d6c88,#94a2bd)';
+      case 'snowy': return 'linear-gradient(180deg,#7e8aa6,#c2cce0)';
+      default: return 'linear-gradient(180deg,#3f86d4,#9fc6ef)';
+    }
+  }
+  function buildWeatherEls(scene, cond, isDay) {
+    const add = (cls, st) => { const e = UI.el('div', { class: cls, style: st || {} }); scene.appendChild(e); return e; };
+    if (!isDay) { // stars on any clear-ish night
+      if (cond === 'clear' || cond === 'sunny' || !cond) {
+        add('wx-moon', { top: '22px', right: '34px' });
+        const stars = add('wx-stars', { position: 'absolute', inset: '0' });
+        for (let i = 0; i < 22; i++) stars.appendChild(UI.el('i', { style: { left: (Math.random() * 100) + '%', top: (Math.random() * 70) + '%', animationDuration: (1.5 + Math.random() * 2.5) + 's', animationDelay: (Math.random() * 2) + 's' } }));
+      }
+    } else if (cond === 'clear' || cond === 'sunny' || !cond) {
+      add('wx-sun', { top: '20px', right: '32px', animation: 'spin 60s linear infinite' });
+    }
+    if (cond === 'cloudy' || cond === 'foggy' || cond === 'rainy' || cond === 'stormy' || cond === 'snowy') {
+      const clouds = add('wx-clouds');
+      [[120, 38, 26, 16, 0], [90, 30, 70, 30, 8], [70, 24, 40, 60, 14]].forEach(([w, h, top, left, dur]) =>
+        clouds.appendChild(UI.el('div', { class: 'wx-cloud', style: { width: w + 'px', height: h + 'px', top: top + 'px', left: left + '%', animationDuration: (24 + dur) + 's' } })));
+    }
+    if (cond === 'rainy' || cond === 'stormy') {
+      const rain = add('wx-rain');
+      for (let i = 0; i < 40; i++) rain.appendChild(UI.el('i', { style: { left: (Math.random() * 100) + '%', animationDuration: (0.5 + Math.random() * 0.5) + 's', animationDelay: (Math.random()) + 's' } }));
+    }
+    if (cond === 'snowy') {
+      const snow = add('wx-rain', { opacity: '0.9' });
+      for (let i = 0; i < 30; i++) snow.appendChild(UI.el('i', { style: { left: (Math.random() * 100) + '%', width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.9)', animationDuration: (2 + Math.random() * 2) + 's', animationDelay: (Math.random() * 2) + 's' } }));
+    }
+    if (cond === 'stormy') add('wx-bolt');
+  }
+  function weatherScene() {
+    const w = Weather.get();
+    const denied = !w || w.denied;
+    const cond = (!denied) ? (w.cond || 'clear') : 'clear';
+    const isDay = w ? w.isDay !== false : true;
+    const scene = UI.el('div', { class: 'weather-scene', style: { height: '170px', borderRadius: 'var(--r-xl)', position: 'relative', overflow: 'hidden', border: '1px solid var(--glass-stroke)' } });
+    scene.appendChild(UI.el('div', { class: 'weather-sky', style: { background: skyGradient(cond, isDay) } }));
+    if (!denied) buildWeatherEls(scene, cond, isDay);
+    const unit = Store.get('settings.tempUnit', 'F');
+    const tempStr = (!denied && w.tempC != null) ? (unit === 'C' ? Math.round(w.tempC) + '°C' : Math.round(w.tempC * 9 / 5 + 32) + '°F') : '';
+    scene.appendChild(UI.el('div', { class: 'scene-caption' }, [
+      UI.el('div', { class: 'sc-weather' }, denied ? t('set.locationSub') : (t('outside.' + cond) + (tempStr ? '  ·  ' + tempStr : ''))),
+      UI.el('div', { class: 'sc-date' }, denied ? '' : ('📍 ' + (((window.Crisis && Crisis.REGIONS[Store.get('settings.region', 'US')]) || {}).label || ''))),
+    ]));
+    return scene;
+  }
   function locationSection() {
     if (!window.Weather) return [];
     const w = Weather.get();
-    const status = UI.el('div', { class: 'small soft', style: { padding: '4px 16px 0' } },
-      w && !w.denied && w.tempC != null ? '📍 ' + Math.round(w.tempC) + '°C · ' + t('outside.' + (w.cond || 'clear')) : t('set.locationSub'));
+    const denied = !w || w.denied;
     return [
       sectionHead('set.location'),
+      weatherScene(),
       glassSection([
-        status,
-        UI.el('div', { style: { padding: '10px 16px 12px' } }, [
-          UI.btn(t('outside.enable'), { class: 'btn-ghost btn-sm', icon: 'globe', onClick: async () => { await Weather.requestLocation(); UI.haptic('light'); Anchor.refresh(); } }),
+        UI.el('div', { style: { padding: '12px 16px 12px' } }, [
+          UI.btn(denied ? t('outside.enable') : t('set.locationRefresh'), { class: 'btn-ghost btn-sm', icon: 'globe', onClick: async () => { await Weather.requestLocation(); if (Weather.refresh) Weather.refresh(); UI.haptic('light'); Anchor.refresh(); } }),
         ]),
       ]),
     ];
@@ -598,8 +770,9 @@
     appendItems(languageSection(root));
     appendItems(appearanceSection());
     appendItems(accentSection());
+    appendItems(accessSection());
     appendItems(scheduleSection());
-    appendItems(deviceSection(root));
+    // AI & Device section intentionally hidden from users.
     appendItems(locationSection());
     appendItems(remindersSection());
     appendItems(dataSection());
