@@ -81,11 +81,10 @@ body[data-weather="sun"]   .ambient { filter: hue-rotate(-18deg) saturate(1.2) b
 .tab .tab-ico svg { width: 23px; height: 23px; stroke: currentColor; fill: none; }
 .tab:active { transform: scale(0.9); }
 .tab.active { color: var(--ink); }
-.tab.active .tab-ico::after {
-  content: ""; position: absolute; inset: -6px -10px; border-radius: var(--r-lg); z-index: -1;
-  background: linear-gradient(120deg, rgba(var(--a1-rgb),0.35), rgba(var(--a2-rgb),0.30));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
-}
+/* The active-tab highlight pill is defined once in refresh.css
+   (.navdock .tab.active::before) so the active tab shows a single pill.
+   The legacy .tab-ico::after highlight was removed to avoid a second
+   circle drawing around the icon on top of it. */
 .tab.active .tab-ico { color: var(--ink); }
 
 /* banner (offline / notices) */
