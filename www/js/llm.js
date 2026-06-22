@@ -1,8 +1,19 @@
 // ===========================================================================
-// llm.js — ON-DEVICE AI. Calls Cerebras directly from the phone so Anchor needs
-// no backend for its intelligence. In the installed app, CapacitorHttp (enabled
-// in capacitor.config.json) makes the request natively, so there is no browser
-// CORS preflight to fail. On the web/Vercel it uses normal fetch.
+// llm.js — AI client. The Cerebras API key is NEVER shipped in this file.
+//
+// Two paths, in priority order:
+//   1. Bring-your-own-key  — if the user pastes their own key in
+//      Settings → AI & Device, we call Cerebras directly with it. That key is
+//      theirs and lives only in their own on-device storage.
+//   2. Server proxy (default) — otherwise every request goes to our serverless
+//      function (/api/chat), which holds the real key in a server env var and
+//      validates/limits the request. No secret ever reaches the browser or the
+//      app binary. See api/chat.js + SECURITY.md.
+//
+// On native (Capacitor) the proxy must be an absolute URL — set CONFIG.aiProxyUrl
+// in www/js/config.js to your deployed origin (e.g. https://your-app.vercel.app).
+// CapacitorHttp (enabled in capacitor.config.json) makes the native request
+// without a browser CORS preflight.
 //
 //   LLM.configured()            -> bool
 //   LLM.chat(messages, opts)    -> string (raw assistant text)
@@ -15,16 +26,28 @@
 // distress appears, frame everything as reflection not treatment.
 // ===========================================================================
 (function () {
-  // Defaults carried over from the proven APEX setup; user can override in
-  // Settings → AI & Device (stored on-device only).
-  const DEFAULTS = {
-    key: 'csk-c3rnpx6jmhxnnkjc8wwhwfnr5cj3fhx5p2vm42v59vjv5kk3',
-    model: 'zai-glm-4.7',
-  };
-  const URL = 'https://api.cerebras.ai/v1/chat/completions';
+  const DEFAULTS = { model: 'zai-glm-4.7' };
+  const CEREBRAS_URL = 'https://api.cerebras.ai/v1/chat/completions';
 
-  function key() { return Store.get('settings.llmKey') || DEFAULTS.key; }
+  // The user's OWN key, if they chose to provide one (on-device only). There is
+  // deliberately no shipped fallback key — the proxy is the default path.
+  function userKey() { return (Store.get('settings.llmKey') || '').trim(); }
   function model() { return Store.get('settings.llmModel') || DEFAULTS.model; }
+
+  function isNative() {
+    if (window.Capacitor && Capacitor.isNativePlatform) { try { return !!Capacitor.isNativePlatform(); } catch {} }
+    return location.protocol === 'capacitor:' || location.protocol === 'file:';
+  }
+  // Where to send proxied requests. Web → same-origin relative path. Native →
+  // the absolute URL configured in config.js (no host otherwise).
+  function proxyUrl() {
+    const cfg = (window.CONFIG && CONFIG.aiProxyUrl || '').trim();
+    if (cfg) return cfg.replace(/\/+$/, '');
+    if (!isNative() && /^https?:$/.test(location.protocol)) return '/api/chat';
+    return '';   // native without a configured proxy → unavailable
+  }
+  // AI is available if the user brought a key OR a proxy endpoint exists.
+  function available() { return !!userKey() || !!proxyUrl(); }
 
   const SYSTEM = `You are Anchor — a warm, perceptive companion for self-understanding and mental wellbeing. You are NOT a therapist, doctor, or crisis service, and you never claim to be.
 
@@ -36,26 +59,44 @@ Core stance:
 - Safety first: if someone expresses self-harm, hopelessness, or crisis, gently and directly encourage them to reach a real person or local crisis line right now, and remind them support is one tap away in the app. Never minimize. Never give means or methods of harm.
 - You respect that the user's data lives on their device and is theirs.`;
 
+  function extractContent(data) {
+    if (!data) return '';
+    if (typeof data.content === 'string') return data.content;            // our proxy shape
+    const c = data.choices && data.choices[0] && data.choices[0].message; // raw Cerebras shape
+    return (c && c.content) || '';
+  }
+
   async function callRaw(messages, { json = false, temperature = 0.7, _noJsonMode = false } = {}) {
-    const k = key();
-    if (!k) { const e = new Error('No AI key set. Add one in Settings → AI & Device.'); e.status = 503; throw e; }
+    const key = userKey();
+    const proxy = proxyUrl();
+    if (!key && !proxy) {
+      const e = new Error('AI isn\'t set up yet. Add your own key in Settings → AI & Device, or configure the server proxy.');
+      e.status = 503; throw e;
+    }
+
     const body = { model: model(), messages, temperature };
     if (json && !_noJsonMode) body.response_format = { type: 'json_object' };
+
+    const url = key ? CEREBRAS_URL : proxy;
+    const headers = { 'Content-Type': 'application/json' };
+    if (key) headers.Authorization = 'Bearer ' + key;   // only on the direct BYO-key path
+
     let res;
     try {
-      res = await fetch(URL, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + k }, body: JSON.stringify(body) });
+      res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
     } catch (netErr) {
       const e = new Error('Could not reach the AI service. Check your connection.'); e.status = 0; throw e;
     }
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      if (res.status === 400 && json && !_noJsonMode && /response_format|json/i.test(text)) {
+      // If JSON-mode wasn't accepted, retry once as plain text.
+      if (json && !_noJsonMode && (res.status === 400 || res.status === 502) && /response_format|json/i.test(text)) {
         return callRaw(messages, { json, temperature, _noJsonMode: true });
       }
       const e = new Error('AI error (' + res.status + ')'); e.status = res.status === 429 ? 429 : 502; e.detail = text; throw e;
     }
-    const data = await res.json();
-    return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+    const data = await res.json().catch(() => null);
+    return extractContent(data);
   }
 
   function langLine(lang) { return I18N.modelLangLine(lang); }
@@ -69,7 +110,7 @@ Core stance:
   }
 
   const LLM = {
-    configured() { return !!key(); },
+    configured() { return available(); },
     DEFAULTS,
 
     async chat(messages, opts) {

@@ -1,8 +1,15 @@
 // ===========================================================================
 // config.js — non-secret integration IDs (a Google *web client id* is public
-// and safe to ship in the client).
+// and safe to ship in the client). NO secrets belong in this file.
 // ===========================================================================
 window.CONFIG = {
+  // AI proxy endpoint (api/chat.js). On the web this is left blank and the app
+  // uses the same-origin path "/api/chat" automatically. For the NATIVE iPhone
+  // app there is no same-origin server, so set this to your deployed origin,
+  // e.g. 'https://your-app.vercel.app/api/chat'. The real Cerebras key lives in
+  // that server's CEREBRAS_API_KEY env var and is never shipped to the device.
+  aiProxyUrl: '',
+
   // Google WEB client id (Firebase) — used by the web "Sign in with Google" button.
   firebaseClientId: '96377719286-nrt9cit2cemlvp5q6sqjse65k9n8d6lv.apps.googleusercontent.com',
   // Google iOS client id — REQUIRED for native Google sign-in inside the iPhone

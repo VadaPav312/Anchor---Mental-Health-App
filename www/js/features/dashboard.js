@@ -61,23 +61,6 @@
       attachArrange(wrap, grid);
       grid.appendChild(wrap);
     });
-
-    // one-time animated cue teaching the swipe-between-sections gesture
-    if (!Store.get('flags.swipeHintSeen')) setTimeout(showSwipeHint, 700);
-  }
-
-  function showSwipeHint() {
-    if (Store.get('flags.swipeHintSeen') || document.getElementById('swipeHint')) return;
-    Store.set('flags.swipeHintSeen', true);
-    const hint = UI.el('div', { class: 'swipe-hint glass-strong', id: 'swipeHint' }, [
-      UI.el('span', { class: 'sh-arrow' }, '‹'),
-      UI.el('span', { class: 'small b' }, t('dash.swipeHint')),
-      UI.el('span', { class: 'sh-arrow' }, '›'),
-    ]);
-    document.body.appendChild(hint);
-    UI.haptic('light');
-    setTimeout(() => { hint.classList.add('out'); setTimeout(() => hint.remove(), 400); }, 3400);
-    hint.onclick = () => { hint.classList.add('out'); setTimeout(() => hint.remove(), 400); };
   }
 
   // ---- widget arrange / reorder (long-press → jiggle → drag) ---------------

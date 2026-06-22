@@ -3,6 +3,9 @@ node_modules/
 
 # secrets & local config (NEVER commit)
 .env
+.env.*
+!.env.example
+.vercel/
 GoogleService-Info*.plist
 .claude/
 

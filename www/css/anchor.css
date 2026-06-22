@@ -141,6 +141,37 @@ body[data-weather="sun"]   .ambient { filter: hue-rotate(-18deg) saturate(1.2) b
 .lrow.tap { transition: background var(--dur-fast); border-radius: var(--r-sm); }
 .lrow.tap:active { background: var(--glass-bg-faint); }
 
+/* ===========================================================================
+   LIFELINE / SUPPORT (the ♥ sheet) — kept visually in sync with the rest of
+   the app: glass cards, themed buttons, soft spacing instead of hard underlines.
+   =========================================================================== */
+/* A single danger CTA — red is intentional for emergencies, but it's a proper
+   token-driven button matching .btn-primary's shape rather than ad-hoc inline hex. */
+.btn-danger {
+  background: linear-gradient(120deg, #ff8a9c, #ff5c7c);
+  border: 1px solid rgba(255,255,255,0.28);
+  color: #fff;
+  box-shadow: 0 10px 30px -10px rgba(255,92,124,0.6), inset 0 1px 0 rgba(255,255,255,0.4);
+}
+.care-sheet { gap: var(--s4); }
+.care-emergency { border: 1px solid rgba(255,138,156,0.35); }
+.care-emergency .care-emergency-head { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--bad); }
+.care-emergency .care-emergency-sub { font-size: 0.86rem; color: var(--ink-faint); margin-top: 3px; line-height: 1.4; }
+/* resource rows: separate soft cards, no dividing underlines */
+.care-list { display: flex; flex-direction: column; gap: var(--s2); }
+.care-item {
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s3); border-radius: var(--r-md);
+  background: var(--glass-bg-faint); border: 1px solid var(--glass-stroke-soft);
+  transition: transform var(--dur-fast) var(--ease-spring), background var(--dur-fast);
+}
+.care-item:active { transform: scale(0.985); background: var(--glass-bg-strong); }
+.care-item .lr-ico { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; font-size: 1.05rem; background: var(--glass-bg-faint); flex: 0 0 auto; color: var(--a1); }
+.care-item .lr-body { flex: 1 1 auto; min-width: 0; }
+.care-item .lr-title { font-weight: 600; font-size: 0.94rem; }
+.care-item .lr-sub { font-size: 0.8rem; color: var(--ink-faint); margin-top: 1px; }
+.care-item .care-region { font-size: 0.72rem; color: var(--ink-soft); text-align: right; flex: 0 0 auto; padding-left: 6px; }
+
 /* insight card (Pattern Detective surfaces these everywhere) */
 .insight { padding: var(--s4) var(--s5); border-radius: var(--r-lg); position: relative; overflow: hidden; }
 .insight .ins-glow { position: absolute; inset: 0; background: radial-gradient(120% 90% at 100% 0%, rgba(var(--a1-rgb),0.3), rgba(var(--a1-rgb),0) 60%); pointer-events: none; }

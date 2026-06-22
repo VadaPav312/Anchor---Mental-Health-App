@@ -31,8 +31,8 @@
     UI.haptic('warning');
     const n = numbers();
     const callBtn = (label, num, primary) => num ? UI.el('a', {
-      class: 'btn btn-block ' + (primary ? '' : 'btn-ghost'),
-      href: 'tel:' + num, style: primary ? { background: 'linear-gradient(120deg,#ff8a9c,#ff5c7c)', color: '#fff', fontSize: '1.05rem', padding: '16px' } : { marginTop: '8px' },
+      class: 'btn btn-block ' + (primary ? 'btn-danger btn-lg' : 'btn-ghost'),
+      href: 'tel:' + num, style: primary ? null : { marginTop: '8px' },
     }, label) : null;
     const body = UI.el('div', { class: 'col gap2' }, [
       UI.el('p', { class: 'soft', style: { lineHeight: '1.55', marginBottom: '6px' } }, t('sos.sub')),
@@ -57,35 +57,35 @@
   function open() {
     UI.haptic('light');
     const n = numbers();
-    const body = UI.el('div', { class: 'col gap3' }, [
+    const body = UI.el('div', { class: 'col care-sheet' }, [
       UI.el('p', { class: 'soft', style: { lineHeight: '1.55' } }, t('care.sub')),
 
       // immediate danger — region-aware emergency call
-      UI.el('div', { class: 'glass-card card-tight', style: { borderColor: 'rgba(255,138,156,0.4)' } }, [
-        UI.el('div', { class: 'b', style: { color: 'var(--bad)' } }, t('care.crisisNow')),
-        UI.el('div', { class: 'small soft mt1' }, t('care.crisisNowSub')),
-        UI.el('a', { class: 'btn btn-primary btn-block mt3', href: 'tel:' + n.services, style: { background: 'linear-gradient(120deg,#ff8a9c,#ff6f8c)' } }, '⛑  ' + t('sos.callServices', { n: n.services })),
+      UI.el('div', { class: 'glass-card card care-emergency' }, [
+        UI.el('div', { class: 'care-emergency-head' }, ['⛑', t('care.crisisNow')]),
+        UI.el('div', { class: 'care-emergency-sub' }, t('care.crisisNowSub')),
+        UI.el('a', { class: 'btn btn-danger btn-block btn-lg mt3', href: 'tel:' + n.services }, '⛑  ' + t('sos.callServices', { n: n.services })),
         n.crisis ? UI.el('a', { class: 'btn btn-ghost btn-block mt2', href: 'tel:' + n.crisis }, '☎  ' + t('sos.callCrisis', { n: n.crisis })) : null,
       ]),
 
       // breathing reset
       UI.el('button', { class: 'btn btn-ghost btn-block', onclick: () => { sheet.close(); breathing(); } }, '🫁  ' + t('care.breathe')),
 
-      // resources
-      UI.el('div', { class: 'eyebrow mt2' }, t('care.resources')),
-      UI.el('div', { class: 'glass-card', style: { padding: '6px 14px' } },
-        RESOURCES.map(r => UI.el('a', { class: 'lrow tap', href: r.url, target: '_blank', rel: 'noopener' }, [
+      // resources — soft separate cards, no dividing underlines
+      UI.el('div', { class: 'eyebrow' }, t('care.resources')),
+      UI.el('div', { class: 'care-list' },
+        RESOURCES.map(r => UI.el('a', { class: 'care-item', href: r.url, target: '_blank', rel: 'noopener noreferrer' }, [
           UI.el('div', { class: 'lr-ico' }, '☎'),
           UI.el('div', { class: 'lr-body' }, [
             UI.el('div', { class: 'lr-title' }, r.name),
             UI.el('div', { class: 'lr-sub' }, r.detail),
           ]),
-          UI.el('div', { class: 'lr-meta tiny' }, r.region),
+          UI.el('div', { class: 'care-region' }, r.region),
         ]))
       ),
-      UI.el('a', { class: 'btn btn-block mt1', href: 'https://findahelpline.com', target: '_blank', rel: 'noopener' }, t('care.findHelp')),
+      UI.el('a', { class: 'btn btn-ghost btn-block', href: 'https://findahelpline.com', target: '_blank', rel: 'noopener noreferrer' }, t('care.findHelp')),
 
-      UI.el('p', { class: 'tiny muted tac', style: { lineHeight: '1.5', marginTop: '6px' } }, t('care.reminder')),
+      UI.el('p', { class: 'tiny muted tac', style: { lineHeight: '1.5', marginTop: '4px' } }, t('care.reminder')),
       UI.el('p', { class: 'tiny muted tac' }, t('care.disclaimer')),
     ]);
 
