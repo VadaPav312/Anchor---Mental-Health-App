@@ -151,16 +151,21 @@
       document.head.appendChild(s);
     });
   }
-  function decodeJwt(tok) {
-    try { const b = tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); return JSON.parse(decodeURIComponent(escape(atob(b)))); }
-    catch { return null; }
-  }
-  function onGoogleCred(resp) {
-    const p = decodeJwt(resp && resp.credential);
-    if (!p) return;
-    const nm = p.name || p.given_name || 'You';
-    Store.profile.update({ account: { name: nm, email: p.email || '', pin: '', google: true }, name: nm });
-    setSignedIn(true); UI.haptic('success'); finish();
+  // Web Google sign-in uses the OAuth token flow with prompt:'select_account', so
+  // it ALWAYS shows the account chooser and never personalizes the button with a
+  // previous user's name — important on shared devices. We exchange the access
+  // token for basic profile info (name/email) via the userinfo endpoint.
+  let _tokenClient = null;
+  async function onGoogleToken(resp) {
+    if (!resp || !resp.access_token) return;
+    try {
+      const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + resp.access_token } });
+      if (!r.ok) throw new Error('userinfo');
+      const p = await r.json();
+      const nm = p.name || p.given_name || 'You';
+      Store.profile.update({ account: { name: nm, email: p.email || '', pin: '', google: true }, name: nm });
+      setSignedIn(true); UI.haptic('success'); finish();
+    } catch (e) { UI.toast(t('google.failed'), 'bad'); }
   }
   function isNative() { return !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()); }
   function socialPlugin() { return window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.SocialLogin; }
@@ -190,13 +195,26 @@
       c.appendChild(btn);
       return c;
     }
-    // web build: official Google Identity Services button (needs an authorized origin)
+    // web build: a neutral "Continue with Google" button. We deliberately do NOT
+    // use GIS's personalized renderButton — it shows "Continue as <name>" of the
+    // previous user whenever a Google session exists in the browser, which leaks
+    // that person on a shared device. The token flow below forces account choice.
     if (!CONFIG.firebaseClientId) return c;
+    const gbtn = UI.btn(t('google.signIn'), { class: 'btn-ghost btn-block', icon: 'user', disabled: true,
+      onClick: () => { try { _tokenClient && _tokenClient.requestAccessToken(); } catch (e) { UI.toast(t('google.failed'), 'bad'); } } });
+    c.appendChild(gbtn);
+    // Prepare the token client ahead of the click so requestAccessToken() runs
+    // directly inside the user gesture (avoids popup blockers).
     loadGIS().then(() => {
       try {
-        google.accounts.id.initialize({ client_id: CONFIG.firebaseClientId, callback: onGoogleCred });
-        google.accounts.id.renderButton(c, { theme: 'filled_black', shape: 'pill', size: 'large', text: 'continue_with' });
-      } catch (e) { /* unauthorized origin — leave the slot empty */ }
+        _tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CONFIG.firebaseClientId,
+          scope: 'openid email profile',
+          prompt: 'select_account',
+          callback: onGoogleToken,
+        });
+        gbtn.disabled = false;
+      } catch (e) { /* unauthorized origin / init failed — leave disabled */ }
     }).catch(() => {});
     return c;
   }
@@ -209,6 +227,8 @@
     const ok = await UI.confirm(t('auth.signOutConfirm'), { confirmLabel: t('auth.signOut') });
     if (!ok) return;
     setSignedIn(false);
+    // Make sure Google won't silently re-link the previous account next time.
+    try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch {}
     // Drop user-specific reminders; general "we miss you" nudges keep going.
     if (window.Native && Native.syncReminders) Native.syncReminders();
     UI.toast(t('auth.signedOut'), 'good');
