@@ -33,7 +33,7 @@ const plist = findPlist(ROOT);
 if (!plist) {
   console.error('\n❌ GoogleService-Info.plist not found in the project.\n');
   console.error('   1. Firebase console → Project settings → your iOS app');
-  console.error('      (Add app → iOS, bundle id: com.flowstate31415.arduinotest, if you haven\'t).');
+  console.error('      (Add app → iOS, bundle id: com.flowstate.anchor, if you haven\'t).');
   console.error('   2. Download GoogleService-Info.plist and drop it into ios/App/App/.');
   console.error('   3. Re-run:  npm run wire-google\n');
   process.exit(1);

@@ -359,6 +359,7 @@
   function remindersSection() {
     const settings = Store.settings.get();
     const reminders = settings.reminders || {};
+    const miss = Object.assign({ on: false, hour: 11, minute: 0 }, reminders.miss);
     const windDown = Object.assign({ on: false, hour: 21, minute: 30 }, reminders.windDown);
     const checkin = Object.assign({ on: false, hour: 19, minute: 0 }, reminders.checkin);
 
@@ -378,6 +379,31 @@
       });
       return inp;
     }
+
+    // "We miss you" — a general nudge that keeps going even when signed out.
+    const missTimeInp = timeInput(miss, function (h, m) {
+      const rem = Store.settings.get().reminders || {};
+      rem.miss = Object.assign({}, rem.miss, { hour: h, minute: m });
+      Store.settings.update({ reminders: rem });
+      Native.syncReminders();
+    });
+    missTimeInp.disabled = !miss.on;
+
+    const missToggle = UI.switchToggle(miss.on, async function (val) {
+      if (val) {
+        const perm = await Native.notifPermission();
+        if (perm === 'denied') {
+          UI.toast(t('set.remMiss') + ' — ' + t('set.testFail'), 'bad');
+          missToggle.querySelector('input').checked = false;
+          return;
+        }
+      }
+      const rem = Store.settings.get().reminders || {};
+      rem.miss = Object.assign({}, rem.miss, { on: val });
+      Store.settings.update({ reminders: rem });
+      missTimeInp.disabled = !val;
+      Native.syncReminders();
+    });
 
     // Wind-down
     const wdTimeInp = timeInput(windDown, function (h, m) {
@@ -445,9 +471,11 @@
     return [
       sectionHead('set.reminders'),
       glassSection([
+        reminderRow(t('set.remMiss'), missToggle, missTimeInp),
         reminderRow(t('set.remWindDown'), wdToggle, wdTimeInp),
         reminderRow(t('set.remCheckin'), ciToggle, ciTimeInp),
       ]),
+      UI.el('div', { class: 'tiny muted', style: { padding: '2px 6px 0', lineHeight: '1.45' } }, t('set.remCheckinNote')),
     ];
   }
 
@@ -599,7 +627,7 @@
     return [
       sectionHead('set.about'),
       glassSection([
-        aboutRow(t('set.version'), UI.el('div', { class: 'small soft' }, '1.0.0'), null),
+        aboutRow(t('set.version'), UI.el('div', { class: 'small soft' }, '1.1.0 (2)'), null),
         aboutRow(t('set.care'), supportBtn, null),
         aboutRow(t('set.privacy'), null, t('set.privacyText')),
         aboutRow(t('set.signOutData'), resetOnbBtn, null),
@@ -670,10 +698,15 @@
   function accountSection() {
     if (!window.Auth) return [];
     const acct = Auth.account();
+    const stayToggle = UI.switchToggle(Auth.isPersist ? Auth.isPersist() : true, function (val) {
+      if (Auth.setPersist) Auth.setPersist(val);
+      UI.haptic('light');
+    });
     return [
       sectionHead('set.account'),
       glassSection([
         acct ? iconRow('user', t('set.signedInAs', { name: acct.name }), acct.email || t('auth.onDevice'), null) : null,
+        iconRow('lock', t('set.staySignedIn'), t('set.staySignedInSub'), stayToggle),
         UI.el('div', { style: { padding: '12px 16px 6px' } }, [
           UI.btn(t('auth.signOut'), { class: 'btn-block', icon: 'lock', onClick: () => Auth.signOut() }),
         ]),

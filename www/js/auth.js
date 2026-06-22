@@ -12,17 +12,39 @@
   function account() { return Store.get('profile.account', null); }
   function hasAccount() { return !!(account() && account().name); }
 
-  // Session persists across app relaunches. Kept in BOTH the store and a
-  // dedicated localStorage key so a fresh launch reliably stays signed in.
+  // Whether to keep the user signed in across app closes. Asked once on first
+  // run and changeable later in Settings. Default: stay signed in.
+  function persistSession() { return Store.get('settings.session.persist', true) !== false; }
+
+  // The signed-in flag lives in ONE of two web-storage backends depending on
+  // that preference:
+  //   • localStorage   — survives app close → "stay signed in"
+  //   • sessionStorage — cleared when the app/webview is closed → "log out on close"
+  // (We deliberately do NOT mirror this into the persisted Store, or the
+  //  "log out on close" choice could never actually take effect.)
   const SK = 'anchor_signed_in';
   function isSignedIn() {
+    try { if (sessionStorage.getItem(SK) === '1') return true; } catch {}
     try { if (localStorage.getItem(SK) === '1') return true; } catch {}
-    return !!Store.get('session.signedIn', false);
+    return false;
   }
   function setSignedIn(v) {
-    Store.set('session.signedIn', v);
-    try { v ? localStorage.setItem(SK, '1') : localStorage.removeItem(SK); } catch {}
+    try {
+      if (!v) { localStorage.removeItem(SK); sessionStorage.removeItem(SK); return; }
+      if (persistSession()) { localStorage.setItem(SK, '1'); sessionStorage.removeItem(SK); }
+      else { sessionStorage.setItem(SK, '1'); localStorage.removeItem(SK); }
+    } catch {}
   }
+
+  // Change the "stay signed in / log out on close" preference. Re-homes the
+  // current session into the correct backend so the choice applies immediately,
+  // and re-syncs reminders (general vs. user-specific) just in case.
+  function setPersist(v) {
+    Store.set('settings.session.persist', !!v);
+    if (isSignedIn()) setSignedIn(true);   // move flag to the right backend
+    if (window.Native && Native.syncReminders) Native.syncReminders();
+  }
+  function isPersist() { return persistSession(); }
 
   let onDone = null;
 
@@ -187,6 +209,8 @@
     const ok = await UI.confirm(t('auth.signOutConfirm'), { confirmLabel: t('auth.signOut') });
     if (!ok) return;
     setSignedIn(false);
+    // Drop user-specific reminders; general "we miss you" nudges keep going.
+    if (window.Native && Native.syncReminders) Native.syncReminders();
     UI.toast(t('auth.signedOut'), 'good');
     if (window.App && App.gate) { App.hideChrome(true); App.gate(); }
   }
@@ -204,5 +228,5 @@
     location.reload();
   }
 
-  window.Auth = { isSignedIn, hasAccount, account, start, signOut, deleteAccount };
+  window.Auth = { isSignedIn, hasAccount, account, start, signOut, deleteAccount, setPersist, isPersist };
 })();

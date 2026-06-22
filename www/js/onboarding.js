@@ -54,8 +54,8 @@
       } })));
   }
 
-  const STEPS = [welcome, name, color, values, baseline, reminders, ready];
-  const NDOTS = 5;   // middle steps: name, color, values, baseline, reminders
+  const STEPS = [welcome, name, color, values, baseline, reminders, session, ready];
+  const NDOTS = 6;   // middle steps: name, color, values, baseline, reminders, session
 
   function render() { STEPS[step](); }
   function go(n) { step = Math.max(0, Math.min(STEPS.length - 1, n)); render(); UI.haptic('light'); }
@@ -203,6 +203,7 @@
       UI.btn(t('onb.notifAllow'), { class: 'btn-primary btn-lg', block: true, icon: 'bell', onClick: async () => {
         const perm = await Native.notifPermission();
         if (perm === 'granted') {
+          Store.set('settings.reminders.miss.on', true);      // general "we miss you"
           Store.set('settings.reminders.windDown.on', true);
           Store.set('settings.reminders.checkin.on', true);
           UI.toast(t('app.saved'), 'good');
@@ -213,7 +214,43 @@
     ]);
   }
 
-  // 5 — ready (with demo-data offer)
+  // 6 — stay signed in vs. log out when the app closes (changeable in Settings)
+  function session() {
+    function pick(persist) {
+      if (window.Auth && Auth.setPersist) Auth.setPersist(persist);
+      else Store.set('settings.session.persist', persist);
+      UI.haptic('success');
+      go(7);
+    }
+    function choice(emoji, title, sub, persist) {
+      return UI.el('button', { class: 'glass-card card', style: { textAlign: 'left', cursor: 'pointer', width: '100%' },
+        onclick: () => pick(persist) }, [
+        UI.el('div', { class: 'row gap3', style: { alignItems: 'center' } }, [
+          UI.el('div', { style: { fontSize: '1.8rem' } }, emoji),
+          UI.el('div', { class: 'col gap0 grow' }, [
+            UI.el('div', { class: 'b' }, title),
+            UI.el('div', { class: 'small soft', style: { marginTop: '2px', lineHeight: '1.4' } }, sub),
+          ]),
+        ]),
+      ]);
+    }
+    frame([
+      dots(NDOTS, 5),
+      UI.el('div', { class: 'tac', style: { fontSize: '3rem', marginBottom: '6px' } }, '🔐'),
+      UI.el('h2', { class: 'serif', style: { fontSize: '1.9rem', marginBottom: '8px' } }, t('onb.sessionTitle')),
+      UI.el('p', { class: 'soft', style: { marginBottom: '22px', lineHeight: '1.5' } }, t('onb.sessionSub')),
+      UI.el('div', { class: 'col gap3' }, [
+        choice('🏠', t('onb.sessionStay'), t('onb.sessionStaySub'), true),
+        choice('🚪', t('onb.sessionLogout'), t('onb.sessionLogoutSub'), false),
+      ]),
+      UI.el('div', { class: 'row', style: { marginTop: '20px' } }, [
+        UI.btn(t('app.back'), { class: 'btn-ghost', onClick: () => go(5) }),
+      ]),
+      UI.el('p', { class: 'tiny muted tac', style: { marginTop: '14px', lineHeight: '1.45' } }, t('onb.sessionNote')),
+    ]);
+  }
+
+  // 7 — ready (with demo-data offer)
   function ready() {
     frame([
       UI.el('div', { class: 'tac', style: { fontSize: '3.4rem', marginBottom: '10px', animation: 'pop .5s var(--ease-spring)' } }, '⚓'),

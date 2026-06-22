@@ -16,9 +16,15 @@
     try { SB.setStyle({ style: light ? 'LIGHT' : 'DARK' }); SB.setOverlaysWebView && SB.setOverlaysWebView({ overlay: true }); } catch {}
   };
 
+  // scope:
+  //   'general' — generic care nudges (e.g. "we miss you", wind-down). These
+  //               keep firing no matter what, even when nobody is signed in.
+  //   'user'    — tied to the signed-in person's own data/habits (e.g. the
+  //               daily check-in / streak). Only scheduled while signed in.
   const REMINDERS = {
-    windDown: { id: 2001, titleKey: 'set.remWindDown', bodyKey: 'dec.sub' },
-    checkin: { id: 2002, titleKey: 'set.remCheckin', bodyKey: 'chk.streakKeep' },
+    miss: { id: 2003, titleKey: 'set.remMiss', bodyKey: 'set.remMissBody', scope: 'general' },
+    windDown: { id: 2001, titleKey: 'set.remWindDown', bodyKey: 'dec.sub', scope: 'general' },
+    checkin: { id: 2002, titleKey: 'set.remCheckin', bodyKey: 'chk.streakKeep', scope: 'user' },
   };
   Native.REMINDERS = REMINDERS;
 
@@ -41,9 +47,13 @@
 
   Native.syncReminders = async () => {
     const rem = Store.get('settings.reminders', {});
+    const signedIn = !window.Auth || Auth.isSignedIn();
     for (const key of Object.keys(REMINDERS)) {
-      const cfg = rem[key]; if (!cfg) continue;
-      if (cfg.on) await Native.scheduleReminder(key, cfg.hour, cfg.minute);
+      const meta = REMINDERS[key];
+      const cfg = rem[key];
+      // user-specific reminders only run while signed in; general ones always.
+      const allowed = !!(cfg && cfg.on) && (meta.scope !== 'user' || signedIn);
+      if (allowed) await Native.scheduleReminder(key, cfg.hour, cfg.minute);
       else await Native.cancelReminder(key);
     }
   };

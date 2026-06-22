@@ -38,7 +38,16 @@
         llmKey: '', llmModel: '',
         liveTranslate: false,
         dashHidden: [],               // hidden home widgets
-        reminders: { windDown: { on: false, hour: 21, minute: 30 }, checkin: { on: false, hour: 19, minute: 0 } },
+        // session.persist: true = stay signed in across app closes (default);
+        // false = sign out automatically when the app is closed.
+        session: { persist: true },
+        // Reminders carry a scope: 'general' nudges (miss / windDown) fire even
+        // when signed out; 'user' nudges (checkin) only fire while signed in.
+        reminders: {
+          miss: { on: false, hour: 11, minute: 0 },
+          windDown: { on: false, hour: 21, minute: 30 },
+          checkin: { on: false, hour: 19, minute: 0 },
+        },
       },
       activity: [],                   // [{ id, ts, date, kind:'move'|'rest', level(1-3), label }]
       values: [],
@@ -59,6 +68,7 @@
       if (raw) state = Object.assign(blank(), JSON.parse(raw));
       // merge nested defaults that may be missing from older saves
       state.settings = Object.assign(blank().settings, state.settings || {});
+      state.settings.session = Object.assign(blank().settings.session, state.settings.session || {});
       state.settings.reminders = Object.assign(blank().settings.reminders, state.settings.reminders || {});
     } catch (e) { console.warn('store load failed', e); state = blank(); }
     return state;

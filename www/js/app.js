@@ -397,6 +397,9 @@
     applyTheme();
     applyWeatherTint();
     Native.init();
+    // Keep general "we miss you" nudges scheduled even before/without sign-in.
+    // (User-specific reminders are gated inside syncReminders by sign-in state.)
+    Native.syncReminders && Native.syncReminders();
     Anchor.setHandler(navigate);
 
     // re-render the whole app when language or data changes meaningfully

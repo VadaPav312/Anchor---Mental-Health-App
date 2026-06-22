@@ -10,5 +10,5 @@ window.CONFIG = {
   // (looks like 627695329462-XXXX.apps.googleusercontent.com). Also add its
   // REVERSED form as a URL scheme in ios/App/App/Info.plist (see the placeholder
   // there). Until both are set, native Google sign-in stays hidden/graceful.
-  googleIOSClientId: '627695329462-t142vqaambtmekorfrbon4k016kifgsf.apps.googleusercontent.com',
+  googleIOSClientId: '96377719286-kh4grmomh50nhlt3eirc0r0gqp73s6q5.apps.googleusercontent.com',
 };
