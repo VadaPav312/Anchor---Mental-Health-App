@@ -323,7 +323,7 @@
 
     // ---- save handler -------------------------------------------------------
     function handleSave() {
-      UI.haptic('success');
+      (UI.hapticCommit || UI.haptic)('success');
 
       // Persist
       Store.moods.add({

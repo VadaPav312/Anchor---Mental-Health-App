@@ -606,6 +606,44 @@
     window.addEventListener('resize', _resizeHandler);
   }
 
+  // ---- mini garden (a living header for Home) ------------------------------
+  // A compact, always-animating slice of the same night-garden, sized to sit at
+  // the top of the dashboard. It reacts to real usage: every check-in, night and
+  // journal entry adds a plant, so the header literally grows as you do. Tapping
+  // it opens the full Garden. Today's inner weather tints the scene so a rough
+  // day reads cooler and a bright one warmer — the home screen feels alive.
+  function miniScene(opts) {
+    opts = opts || {};
+    var height = opts.height || 124;
+    var plantCount = totalEngagement();
+    var wx = Store.derive.todayWeather();
+    var checkedIn = !!Store.derive.dayMood(Store.today());
+
+    var scene = UI.el('div', {
+      class: 'garden-mini' + (checkedIn ? ' checked' : ''),
+      style: { height: height + 'px' },
+      'data-wx': wx || '',
+      onclick: function () { if (window.Anchor) Anchor.go('journey', { tab: 'garden' }); },
+    });
+    var canvas = UI.el('canvas', { class: 'garden-canvas' });
+    scene.appendChild(canvas);
+    canvas._plantCount = plantCount;
+
+    // caption: how much has grown, and a gentle prompt to check in if not yet
+    scene.appendChild(UI.el('div', { class: 'garden-mini-cap' }, [
+      UI.el('span', { class: 'gm-emoji' }, wx ? UI.weatherEmoji(wx) : '🌙'),
+      UI.el('span', { class: 'gm-txt' }, checkedIn
+        ? t('grd.miniGrowing', { n: Math.max(1, plantCount) })
+        : t('grd.miniCheckIn')),
+    ]));
+
+    requestAnimationFrame(function () { startGardenAnim(canvas, plantCount); });
+    setTimeout(function () { if (!_gardenAnim || !document.body.contains(canvas)) startGardenAnim(canvas, plantCount); }, 60);
+    return scene;
+  }
+
+  window.Garden = Object.assign(window.Garden || {}, { miniScene: miniScene });
+
   // ---- register ------------------------------------------------------------
 
   Anchor.register({

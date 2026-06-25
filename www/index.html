@@ -14,14 +14,39 @@
   <link rel="stylesheet" href="css/weather.css" />
   <link rel="stylesheet" href="css/extras.css" />
   <link rel="stylesheet" href="css/refresh.css" />
+  <link rel="stylesheet" href="css/liquid.css" />
 </head>
 <body class="theme-aurora">
+  <!-- branded loading screen — the actual Anchor logo on the app's dark base,
+       matching the iOS splash. Fades out the moment the app paints (app.js),
+       with a hard CSS fallback so it can never linger. -->
+  <div id="app-loader" aria-hidden="true">
+    <img src="assets/logo.png" alt="Anchor" class="app-loader-logo" width="112" height="112" />
+    <div class="app-loader-name">Anchor</div>
+  </div>
+  <style>
+    #app-loader { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 18px; background: #05060f;
+      animation: appLoaderHold 4.5s forwards; }
+    #app-loader.app-loader-out { opacity: 0; pointer-events: none; transition: opacity .5s ease; }
+    .app-loader-logo { width: 112px; height: 112px; border-radius: 26px;
+      box-shadow: 0 18px 50px -16px rgba(255,150,120,0.5); animation: appLoaderPulse 2s ease-in-out infinite; }
+    .app-loader-name { font-family: 'Fraunces', Georgia, serif; font-size: 1.5rem; font-weight: 600;
+      letter-spacing: -0.01em; color: #f3f5ff; opacity: 0.92; }
+    @keyframes appLoaderPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    /* fallback: if JS never removes it, fade it out on its own after 4.5s */
+    @keyframes appLoaderHold { 0%,88% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+    @media (prefers-reduced-motion: reduce) { .app-loader-logo { animation: none; } }
+  </style>
+
   <!-- animated ambient background — the "place" the app lives in -->
   <div id="ambient" class="ambient" aria-hidden="true">
     <div class="ambient-orb orb-a"></div>
     <div class="ambient-orb orb-b"></div>
     <div class="ambient-orb orb-c"></div>
     <div class="ambient-doodles"></div>
+    <!-- opt-in: today's inner weather, drifting across the whole app -->
+    <div id="wxbg" class="wxbg" aria-hidden="true"></div>
     <div class="ambient-grain"></div>
   </div>
 
@@ -123,5 +148,7 @@
   <!-- onboarding + boot -->
   <script src="js/onboarding.js"></script>
   <script src="js/app.js"></script>
+  <!-- "Living Glass" reactive chrome + specular (loads after boot) -->
+  <script src="js/liquid.js"></script>
 </body>
 </html>

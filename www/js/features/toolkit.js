@@ -45,6 +45,14 @@
   // ---- exercise catalogue -------------------------------------------------------
   const EXERCISES = [
     {
+      id: 'ai',
+      ico: '✨',
+      nameKey: 'tk.ai',
+      subKey: 'tk.aiSub',
+      durationLabel: 'made for you',
+      featured: true,
+    },
+    {
       id: 'box',
       ico: '🫁',
       nameKey: 'tk.box',
@@ -134,12 +142,13 @@
 
   function _buildCard(ex, root) {
     return el('button', {
-      class: 'tk-card glass-card',
+      class: 'tk-card glass-card' + (ex.featured ? ' tk-card-ai' : ''),
       onclick: () => {
         UI.haptic('light');
         openSession(ex.id, root);
       },
     }, [
+      ex.featured ? el('div', { class: 'tk-ai-badge' }, '✦ ' + t('tk.aiTag')) : null,
       el('div', { class: 'tk-ico' }, ex.ico),
       el('div', { class: 'tk-name' }, t(ex.nameKey)),
       el('div', { class: 'tk-sub' }, t(ex.subKey)),
@@ -153,6 +162,7 @@
   function openSession(id, root) {
     _clearAllTimers();
     switch (id) {
+      case 'ai':         sessionAI(root);         break;
       case 'box':        sessionBox(root);        break;
       case 'paced':      sessionPaced(root);      break;
       case 'senses':     sessionSenses(root);     break;
@@ -686,6 +696,224 @@
    */
   function _confettiHaptic() {
     UI.haptic('success');
+  }
+
+  // =============================================================================
+  // AI GROUNDING — a live, made-for-you calming sequence.
+  // The user picks (once) what tends to calm them; Anchor's AI then composes a
+  // short, personalized grounding session in the moment, shaped by those
+  // preferences AND how they're doing right now (mood / energy / time of day),
+  // and guides them through it step-by-step (with optional read-aloud). It's a
+  // companion ritual, never clinical. Falls back to a built-in personalized
+  // sequence when AI isn't reachable, so it always works.
+  // =============================================================================
+  const CALM_PREFS = [
+    { id: 'nature',   key: 'tk.prefNature',   emoji: '🌿' },
+    { id: 'breath',   key: 'tk.prefBreath',   emoji: '🫁' },
+    { id: 'body',     key: 'tk.prefBody',     emoji: '🧘' },
+    { id: 'words',    key: 'tk.prefWords',    emoji: '💬' },
+    { id: 'senses',   key: 'tk.prefSenses',   emoji: '✋' },
+    { id: 'imagine',  key: 'tk.prefImagine',  emoji: '🌅' },
+    { id: 'stillness',key: 'tk.prefStill',    emoji: '🕊️' },
+    { id: 'sound',    key: 'tk.prefSound',    emoji: '🎧' },
+  ];
+
+  function getPrefs() { return Store.get('settings.calmPrefs', null); }
+  function savePrefs(p) { Store.set('settings.calmPrefs', p); }
+
+  function sessionAI(root) {
+    _clearAllTimers();
+    const prefs = getPrefs();
+    if (!prefs || !prefs.likes || !prefs.likes.length) prefsForm(root);
+    else generateAndPlay(root, prefs);
+  }
+
+  // ---- one-time (editable) preference picker ---------------------------------
+  function prefsForm(root) {
+    _clearAllTimers();
+    UI.clear(root);
+    const existing = getPrefs() || { likes: [], note: '' };
+    const likes = new Set(existing.likes || []);
+    let note = existing.note || '';
+
+    const chips = el('div', { class: 'row wrap gap2' }, CALM_PREFS.map(p => {
+      const c = el('button', { class: 'chip' + (likes.has(p.id) ? ' active' : ''), onclick: () => {
+        UI.haptic('light');
+        if (likes.has(p.id)) { likes.delete(p.id); c.classList.remove('active'); }
+        else { likes.add(p.id); c.classList.add('active'); }
+      } }, p.emoji + ' ' + t(p.key));
+      return c;
+    }));
+
+    const noteInput = el('textarea', { class: 'textarea', placeholder: t('tk.aiPrefsPlaceholder'), rows: 2, style: { minHeight: '64px' } });
+    noteInput.value = note;
+    noteInput.addEventListener('input', () => { note = noteInput.value; });
+
+    root.appendChild(el('div', { class: 'page-head' }, [
+      el('div', { class: 'eyebrow' }, '✦ ' + t('tk.aiTag')),
+      el('h1', { class: 'page-title serif' }, t('tk.aiPrefsTitle')),
+      el('p', { class: 'small soft mt2', style: { lineHeight: '1.6' } }, t('tk.aiPrefsSub')),
+    ]));
+    root.appendChild(el('div', { class: 'glass-card card col gap4' }, [
+      el('div', { class: 'small soft' }, t('tk.aiPrefsPick')),
+      chips,
+      el('div', { class: 'small soft', style: { marginTop: '4px' } }, t('tk.aiPrefsNote')),
+      noteInput,
+    ]));
+    root.appendChild(el('div', { class: 'row gap2', style: { marginTop: 'var(--s4)' } }, [
+      UI.btn(t('app.back'), { class: 'btn-ghost', onClick: () => showGrid(root) }),
+      UI.btn(t('tk.aiBegin'), { class: 'btn-primary grow', icon: 'spark', onClick: () => {
+        const p = { likes: Array.from(likes), note: (note || '').trim() };
+        if (!p.likes.length && !p.note) { UI.toast(t('tk.aiPickOne'), 'bad'); UI.haptic('error'); return; }
+        savePrefs(p);
+        generateAndPlay(root, p);
+      } }),
+    ]));
+  }
+
+  // ---- generate (AI, with a graceful local fallback) -------------------------
+  function calmContext(prefs) {
+    const m = Store.derive.dayMood(Store.today()) || Store.derive.dayMood(Store.daysAgoKey(1));
+    const v = Store.derive.vitality ? Store.derive.vitality() : null;
+    const h = new Date().getHours();
+    const tod = h < 5 ? 'late night' : h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
+    const likeNames = (prefs.likes || []).map(id => { const p = CALM_PREFS.find(x => x.id === id); return p ? t(p.key) : id; });
+    return {
+      likes: likeNames, note: prefs.note || '',
+      weather: m ? m.weather : null, valence: m ? m.valence : null,
+      energyBand: v ? v.band : null, tod,
+    };
+  }
+  function calmPrompt(c) {
+    return 'Create a SHORT, personalized grounding / calming exercise to do right now.\n' +
+      'What tends to calm this person: ' + (c.likes.join(', ') || 'unspecified') + '.\n' +
+      (c.note ? 'In their words, what helps: "' + c.note + '".\n' : '') +
+      'Right now — time: ' + c.tod + (c.weather ? ', inner weather: ' + c.weather : '') + (c.energyBand ? ', energy: ' + c.energyBand : '') + '.\n\n' +
+      'Compose a gentle, NON-clinical guided sequence that leans into their preferences. Return JSON ONLY:\n' +
+      '{ "title": "<short, calming title>",\n' +
+      '  "intro": "<one warm sentence to settle in>",\n' +
+      '  "steps": [ { "text": "<one short spoken instruction in second person, present tense, 1-2 sentences>", "seconds": <whole number 15-45> } ],\n' +
+      '  "closing": "<one short, kind closing line>" }\n' +
+      'Give 4 to 6 steps. Simple, sensory, present-tense language. No medical claims, no diagnosis.';
+  }
+  function sanitizePlan(plan) {
+    if (!plan || !Array.isArray(plan.steps) || !plan.steps.length) return null;
+    const steps = plan.steps.slice(0, 6).map(s => ({
+      text: String((s && s.text) || '').trim(),
+      seconds: Math.max(8, Math.min(60, Math.round((s && s.seconds) || 25))),
+    })).filter(s => s.text);
+    if (!steps.length) return null;
+    return { title: String(plan.title || t('tk.ai')).trim(), intro: String(plan.intro || '').trim(), steps, closing: String(plan.closing || '').trim() };
+  }
+  function fallbackPlan(c) {
+    // a sensible, preference-aware sequence so the feature always works offline
+    const steps = [];
+    steps.push({ text: t('tk.fbSettle'), seconds: 20 });
+    if (c.likes.indexOf(t('tk.prefBreath')) !== -1 || !c.likes.length) steps.push({ text: t('tk.fbBreath'), seconds: 30 });
+    if (c.likes.indexOf(t('tk.prefSenses')) !== -1 || c.likes.indexOf(t('tk.prefNature')) !== -1) steps.push({ text: t('tk.fbSenses'), seconds: 30 });
+    if (c.likes.indexOf(t('tk.prefBody')) !== -1) steps.push({ text: t('tk.fbBody'), seconds: 25 });
+    if (c.likes.indexOf(t('tk.prefImagine')) !== -1 || c.likes.indexOf(t('tk.prefNature')) !== -1) steps.push({ text: t('tk.fbImagine'), seconds: 30 });
+    if (c.likes.indexOf(t('tk.prefWords')) !== -1) steps.push({ text: t('tk.fbWords'), seconds: 25 });
+    steps.push({ text: t('tk.fbClose'), seconds: 20 });
+    return { title: t('tk.aiYours'), intro: t('tk.fbIntro'), steps: steps.slice(0, 6), closing: t('tk.fbClosing') };
+  }
+
+  function generateAndPlay(root, prefs) {
+    _clearAllTimers();
+    UI.clear(root);
+    const c = calmContext(prefs);
+    // loading stage
+    const wrap = el('div', { class: 'tk-stage' }, [
+      el('div', { class: 'tk-orb in' }, [el('div', { class: 'tk-count' }, '✦')]),
+      el('div', { class: 'tk-phase' }, t('tk.aiGenerating')),
+      el('div', { class: 'small soft tac', style: { maxWidth: '260px', lineHeight: '1.5' } }, t('tk.aiGeneratingSub')),
+      el('button', { class: 'btn btn-ghost btn-sm', style: { marginTop: 'var(--s5)' }, onclick: () => showGrid(root) }, t('app.cancel')),
+    ]);
+    root.appendChild(wrap);
+    if (UI.startHum) UI.startHum();
+
+    const done = (plan) => { if (UI.stopHum) UI.stopHum(); playPlan(root, plan); };
+
+    if (window.LLM && LLM.configured()) {
+      LLM.json(calmPrompt(c), { temperature: 0.7 })
+        .then(raw => { const p = sanitizePlan(raw); done(p || fallbackPlan(c)); })
+        .catch(() => { done(fallbackPlan(c)); });
+    } else {
+      // no AI configured — still deliver a personalized sequence locally
+      setTimeout(() => done(fallbackPlan(c)), 500);
+    }
+  }
+
+  // ---- guided playback -------------------------------------------------------
+  function playPlan(root, plan) {
+    _clearAllTimers();
+    let running = true, idx = 0, secsLeft = 0;
+    const total = plan.steps.length;
+    const ttsOn = window.Speech && Speech.ttsSupported() && Store.get('settings.tts', true) !== false;
+
+    const { orb, phaseEl, countEl, bodyEl } = buildStage(root, {
+      onStop: () => { running = false; if (window.Speech && Speech.stop) Speech.stop(); },
+    });
+
+    const progress = el('div', { class: 'tk-ai-progress' }, [el('i', { style: { width: '0%' } })]);
+    bodyEl.appendChild(progress);
+    const skip = el('button', { class: 'btn btn-ghost btn-sm', style: { marginTop: 'var(--s3)' }, onclick: () => nextStep() }, t('tk.aiSkip'));
+    bodyEl.appendChild(skip);
+
+    if (plan.intro) UI.toast(plan.intro, 'good');
+
+    let ticker = null;
+    function showStep() {
+      if (!running) return;
+      const s = plan.steps[idx];
+      orb.classList.remove('in', 'out');
+      orb.classList.add(idx % 2 === 0 ? 'in' : 'out');   // gentle breathing motion across steps
+      phaseEl.textContent = s.text;
+      secsLeft = s.seconds;
+      countEl.textContent = String(secsLeft);
+      progress.firstChild.style.width = Math.round((idx / total) * 100) + '%';
+      UI.haptic('light');
+      if (ttsOn) { try { Speech.speak(s.text); } catch (e) {} }
+    }
+    function nextStep() {
+      if (!running) return;
+      if (window.Speech && Speech.stop) Speech.stop();
+      idx++;
+      if (idx >= total) { finishAI(root, plan); return; }
+      showStep();
+    }
+
+    showStep();
+    ticker = _addInterval(() => {
+      if (!running) return;
+      secsLeft--;
+      if (secsLeft <= 0) nextStep();
+      else countEl.textContent = String(secsLeft);
+    }, 1000);
+  }
+
+  function finishAI(root, plan) {
+    _clearAllTimers();
+    if (window.Speech && Speech.stop) Speech.stop();
+    UI.clear(root);
+    (UI.hapticSuccess || UI.haptic)('success');
+    const card = el('div', { class: 'glass-card card', style: { textAlign: 'center', maxWidth: '300px', marginTop: 'var(--s2)' } }, [
+      el('div', { class: 'b', style: { fontSize: '1.2rem', lineHeight: '1.4' } }, plan.closing || t('tk.fbClosing')),
+    ]);
+    if (window.Speech && Speech.ttsSupported() && Store.get('settings.tts', true) !== false) {
+      const rb = Speech.readButton(() => plan.closing || t('tk.fbClosing'));
+      if (rb) card.appendChild(el('div', { style: { marginTop: 'var(--s2)' } }, [rb]));
+    }
+    root.appendChild(el('div', { class: 'tk-stage' }, [
+      el('div', { style: { fontSize: '3rem', lineHeight: '1' } }, '🤍'),
+      el('div', { class: 'tk-phase' }, t('tk.after')),
+      card,
+      el('div', { class: 'row gap2', style: { marginTop: 'var(--s5)' } }, [
+        UI.btn(t('tk.aiAgain'), { class: 'btn-ghost', onClick: () => { const p = getPrefs(); generateAndPlay(root, p || { likes: [], note: '' }); } }),
+        UI.btn(t('app.done'), { class: 'btn-primary', onClick: () => showGrid(root) }),
+      ]),
+      el('button', { class: 'tiny muted', style: { marginTop: 'var(--s3)', textDecoration: 'underline' }, onclick: () => prefsForm(root) }, t('tk.aiEditPrefs')),
+    ]));
   }
 
   // =============================================================================

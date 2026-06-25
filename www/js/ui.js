@@ -64,6 +64,13 @@
   }
   // ultra-light "key" feedback for custom inputs (PIN/password), mechanical feel
   function hapticTick() { haptic('tick'); }
+  // a satisfying "click-thunk" for COMMITTING a meaningful entry (check-in saved,
+  // a value lived, a ring completed) — lighter than the big success cadence, but
+  // unmistakably a "that landed" beat. Used to give the app a consistent, premium
+  // tactile language across every primary action.
+  function hapticCommit() { hapticSeq([{ style: 'medium', delay: 0 }, { style: 'light', delay: 70 }]); }
+  // a bright, ascending "ding" when something is newly completed/unlocked
+  function hapticPop() { hapticSeq([{ style: 'light', delay: 0 }, { style: 'medium', delay: 55 }]); }
   // a faint repeating pulse that "hums" along with a loading shimmer
   let _hum = null;
   function startHum() { if (_hum) return; _hum = setInterval(() => haptic('tick'), 680); }
@@ -152,7 +159,7 @@
           stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
       </svg>
       <div class="ring-center">
-        <div class="rc-num">${opts.text != null ? opts.text : Math.round(value)}</div>
+        <div class="rc-num"${opts.textSize ? ` style="font-size:${opts.textSize};letter-spacing:-0.02em"` : ''}>${opts.text != null ? opts.text : Math.round(value)}</div>
         ${opts.label ? `<div class="rc-lbl">${opts.label}</div>` : ''}
       </div></div>`;
   }
@@ -326,7 +333,7 @@
   function weatherName(code) { return t('wx.weather' + (code ? code[0].toUpperCase() + code.slice(1) : 'Cloud')); }
 
   window.UI = {
-    el, frag, clear, mount, append, haptic, hapticSeq, hapticSuccess, hapticTick, startHum, stopHum, longPress,
+    el, frag, clear, mount, append, haptic, hapticSeq, hapticSuccess, hapticTick, hapticCommit, hapticPop, startHum, stopHum, longPress,
     toast, sheet, modal, confirm,
     ring, sparkline, bars, segmented, chips, spinner, thinking, empty,
     card, tile, btn, field, row, switchToggle, withLoading, fmt,

@@ -76,9 +76,9 @@ body.density-spacious .page { gap: var(--s5); }
 .navdock .tab.active { color: var(--ink); }
 /* stateful nav: the active tab gets a pill behind the icon AND the word */
 .navdock .tab.active::before {
-  content: ""; position: absolute; inset: 3px 4px; border-radius: var(--r-lg); z-index: -1;
-  background: linear-gradient(120deg, rgba(var(--a1-rgb), 0.36), rgba(var(--a2-rgb), 0.28));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  content: ""; position: absolute; inset: -2px 1px; border-radius: var(--r-lg); z-index: -1;
+  background: linear-gradient(120deg, rgba(var(--a1-rgb), 0.40), rgba(var(--a2-rgb), 0.32));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20), 0 4px 14px -6px rgba(var(--a2-rgb), 0.5);
   animation: tab-fill var(--dur) var(--ease-spring);
 }
 @keyframes tab-fill { from { opacity: 0; transform: scale(0.82); } to { opacity: 1; transform: none; } }
@@ -295,6 +295,10 @@ body[data-tod="dusk"]  .ambient::after { background: radial-gradient(120% 90% at
    10. MOVABLE WIDGETS — iOS-style jiggle + drag-to-reorder on the home grid.
    --------------------------------------------------------------------------- */
 .dash-widget { transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur); touch-action: pan-y; }
+/* while arranging widgets, freeze the page scroll — otherwise dragging a widget
+   fights the scroll and makes it nearly impossible to drop it where you want. */
+body.arrange-mode .view { overflow: hidden !important; touch-action: none; overscroll-behavior: contain; }
+body.arrange-mode .dash-widget.dragging { touch-action: none; }
 .dash-grid.arranging .dash-widget { animation: jiggle 0.34s var(--ease-in-out) infinite; }
 .dash-grid.arranging .dash-widget:nth-child(2n) { animation-delay: -0.17s; }
 .dash-grid.arranging .dash-widget::before {

@@ -54,7 +54,7 @@
       sleep: [], moods: [], journal: [], energy: [], activity: [],
       decompress: [], experiments: [], valuesChecks: [],
       insights: [], investigations: [], profileWins: [],
-      gamification: { streak: 0, lastActive: null, longest: 0 },
+      gamification: { streak: 0, lastActive: null, longest: 0, grace: 0 },
       meta: { version: 1, seeded: false },
     };
   }
@@ -174,16 +174,36 @@
   });
 
   // ---- streak bookkeeping -------------------------------------------------
+  // Anchor is non-punitive: missing a single day shouldn't nuke a streak you've
+  // worked to build. You bank a "grace day" every few days you show up (capped at
+  // one in reserve). If you skip exactly one day and have a grace day, the streak
+  // survives — quietly forgiven. Skip two days, or skip with no grace, and it
+  // resets. lastGraceUsed lets the UI surface a gentle "streak saved" beat once.
   function markActive() {
     const g = state.gamification;
     const tk = today();
     if (g.lastActive === tk) return;
-    const y = daysAgoKey(1);
-    g.streak = (g.lastActive === y) ? g.streak + 1 : 1;
+    if (g.grace == null) g.grace = 0;
+    g.graceJustUsed = false;
+    const gap = g.lastActive ? diffDays(tk, g.lastActive) : null;
+    if (gap === 1) {
+      g.streak = (g.streak || 0) + 1;
+    } else if (gap === 2 && (g.streak || 0) >= 3 && g.grace > 0) {
+      // one missed day, forgiven — the streak lives on
+      g.streak = g.streak + 1;
+      g.grace -= 1;
+      g.graceJustUsed = true;
+    } else {
+      g.streak = 1;
+    }
     g.lastActive = tk;
     g.longest = Math.max(g.longest || 0, g.streak);
+    // earn a grace day every 5 lived days, keeping at most one in reserve
+    if (g.streak > 0 && g.streak % 5 === 0) g.grace = Math.min(1, (g.grace || 0) + 1);
   }
   Store.markActive = markActive;
+  // Does the user currently have a streak-saving grace day banked?
+  Store.graceAvailable = function () { return (state.gamification.grace || 0) > 0 && (state.gamification.streak || 0) >= 3; };
 
   // ===========================================================================
   // DERIVED SELECTORS

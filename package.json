@@ -1,6 +1,6 @@
 {
   "name": "anchor",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Anchor — a mental-wellness companion. Compounding, deeply personal insight that reflects you back to yourself.",
   "scripts": {
     "deploy": "npx cap sync ios",

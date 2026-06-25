@@ -103,14 +103,35 @@
       stars(46),
       E('div', { style: { fontSize: '3rem', marginBottom: '6px', animation: 'float-y 5s ease-in-out infinite' } }, morning ? '🌅' : '🌙'),
       title, clock, sub, tucked,
-      E('div', { style: { position: 'absolute', bottom: 'calc(var(--safe-b) + 28px)', left: 0, right: 0, padding: '0 32px' } }, [
-        UI.btn(morning ? t('night.morningCheck') : t('night.endNow'), {
-          class: morning ? 'btn-primary btn-lg' : 'btn-ghost', block: true,
-          onClick: () => end(morning),
-        }),
-        morning ? null : E('button', { class: 'btn btn-ghost btn-block', style: { marginTop: '10px', opacity: 0.6 }, onclick: () => end(false) }, t('app.close')),
-      ]),
     ]);
+
+    // The bottom controls. At night, "Close" doesn't yank you out of goodnight —
+    // it quietly clears the buttons and leaves only a small ✕ in the corner, so
+    // the screen stays a calm goodnight you can rest with and exit when ready.
+    const controls = E('div', { style: { position: 'absolute', bottom: 'calc(var(--safe-b) + 28px)', left: 0, right: 0, padding: '0 32px' } }, [
+      UI.btn(morning ? t('night.morningCheck') : t('night.endNow'), {
+        class: morning ? 'btn-primary btn-lg' : 'btn-ghost', block: true,
+        onClick: () => end(morning),
+      }),
+      morning ? null : E('button', { class: 'btn btn-ghost btn-block', style: { marginTop: '10px', opacity: 0.6 }, onclick: () => minimize() }, t('app.close')),
+    ]);
+    overlay.appendChild(controls);
+
+    // the discreet corner exit, revealed once the goodnight is "minimized"
+    function minimize() {
+      UI.haptic('light');
+      if (controls.parentNode) controls.parentNode.removeChild(controls);
+      if (overlay.querySelector('.night-x')) return;
+      const x = E('button', { class: 'night-x', 'aria-label': t('app.close'), style: {
+        position: 'absolute', top: 'calc(var(--safe-t) + 18px)', right: '20px',
+        width: '38px', height: '38px', borderRadius: '50%', display: 'grid', placeItems: 'center',
+        background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)',
+        color: 'rgba(255,255,255,0.7)', fontSize: '1.1rem', opacity: '0', transition: 'opacity .5s ease',
+      }, onclick: () => end(false) }, UI.frag('<span style="display:inline-flex;width:15px;height:15px">' + Icons.get('x') + '</span>'));
+      overlay.appendChild(x);
+      requestAnimationFrame(() => requestAnimationFrame(() => { x.style.opacity = '1'; }));
+    }
+
     document.body.appendChild(overlay);
 
     function timeStr() { try { return new Date().toLocaleTimeString(I18N.lang, { hour: 'numeric', minute: '2-digit' }); } catch { return ''; } }

@@ -65,6 +65,48 @@
 .fc-day .fc-lbl { font-size: 0.66rem; color: var(--ink-faint); margin-top: 2px; }
 .fc-day .fc-conf { font-size: 0.6rem; color: var(--ink-ghost); }
 
+/* ===========================================================================
+   wxbg — the OPT-IN ambient "inner weather" that drifts across the whole app.
+   Lives inside #ambient (behind all content). Kept deliberately faint so the
+   glass UI and text stay perfectly legible; it's a mood, not a foreground.
+   =========================================================================== */
+.wxbg { position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  opacity: 0; transition: opacity 1.6s var(--ease-in-out); }
+body.wxbg-on .wxbg { opacity: 1; }
+
+/* warm glow for bright days */
+.wxb-glow { position: absolute; left: 50%; top: -22%; width: 90vmax; height: 90vmax;
+  transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,221,150,0.18), rgba(255,180,120,0.06) 42%, transparent 66%);
+  animation: wxb-breathe 11s var(--ease-in-out) infinite; }
+@keyframes wxb-breathe { 0%,100% { opacity: 0.7; transform: translateX(-50%) scale(1); } 50% { opacity: 1; transform: translateX(-50%) scale(1.06); } }
+
+/* floating light motes (sun/clear) */
+.wxb-mote { position: absolute; width: 4px; height: 4px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,240,200,0.9), rgba(255,240,200,0) 70%);
+  animation: wxb-float linear infinite; }
+@keyframes wxb-float { 0% { transform: translateY(8px); opacity: 0; } 12% { opacity: 0.9; } 88% { opacity: 0.9; } 100% { transform: translateY(-40px); opacity: 0; } }
+
+/* drifting clouds (cloud/fog/rain/storm) */
+.wxb-cloud { position: absolute; left: -45%; border-radius: 999px; filter: blur(26px);
+  background: radial-gradient(ellipse at 50% 50%, rgba(200,212,240,0.55), rgba(200,212,240,0) 70%);
+  animation: wxb-drift linear infinite; }
+@keyframes wxb-drift { from { transform: translateX(0); } to { transform: translateX(220vw); } }
+.wxbg[data-wx="storm"] .wxb-cloud { background: radial-gradient(ellipse at 50% 50%, rgba(120,128,168,0.6), rgba(120,128,168,0) 70%); }
+
+/* rain (rain/storm) */
+.wxb-drop { position: absolute; top: -8%; width: 1.4px; height: 22px; border-radius: 2px;
+  background: linear-gradient(transparent, rgba(180,200,255,0.55)); animation: wxb-rain linear infinite; }
+@keyframes wxb-rain { to { transform: translateY(112vh); } }
+
+/* lightning flash (storm) */
+.wxb-flash { position: absolute; inset: 0; background: rgba(190,205,255,0); animation: wxb-flash 8s steps(1) infinite; }
+@keyframes wxb-flash { 0%,93%,100% { background: rgba(190,205,255,0); } 94% { background: rgba(190,205,255,0.10); } 95%,97% { background: rgba(190,205,255,0); } 96% { background: rgba(190,205,255,0.16); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .wxb-mote, .wxb-cloud, .wxb-drop, .wxb-flash, .wxb-glow { animation: none; }
+}
+
 /* legend */
 .wx-legend { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .wx-legend .lg { display: flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--ink-soft); }

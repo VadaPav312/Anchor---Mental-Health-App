@@ -233,6 +233,13 @@
       if (window.App && App.applyDoodles) App.applyDoodles();
     });
 
+    // Inner-weather background — the whole app drifts as today's emotional weather.
+    const wxBgToggle = UI.switchToggle(!!settings.weatherBg, function (val) {
+      Store.settings.update({ weatherBg: val });
+      if (window.App && App.applyWeatherBg) App.applyWeatherBg();
+      UI.haptic('light');
+    });
+
     const densityBlock = UI.el('div', {}, [
       iconRow('grid', t('set.density'), t('set.densitySub'), null),
       UI.el('div', { style: { padding: '0 16px 12px' } }, [densitySeg]),
@@ -247,6 +254,7 @@
           UI.el('div', { style: { flexShrink: '0' } }, [bgSeg])),
         densityBlock,
         iconRow('spark', t('set.doodles'), t('set.doodlesSub'), doodleToggle),
+        iconRow('weather', t('set.weatherBg'), t('set.weatherBgSub'), wxBgToggle),
         iconRow('thermo', t('set.tempUnit'), null,
           UI.el('div', { style: { flexShrink: '0' } }, [tempSeg])),
       ]),
@@ -627,7 +635,7 @@
     return [
       sectionHead('set.about'),
       glassSection([
-        aboutRow(t('set.version'), UI.el('div', { class: 'small soft' }, '1.1.0 (2)'), null),
+        aboutRow(t('set.version'), UI.el('div', { class: 'small soft' }, '1.2.0 (3)'), null),
         aboutRow(t('set.care'), supportBtn, null),
         aboutRow(t('set.privacy'), null, t('set.privacyText')),
         aboutRow(t('set.signOutData'), resetOnbBtn, null),

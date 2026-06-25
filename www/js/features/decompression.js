@@ -491,27 +491,15 @@
       wrap.appendChild(buildSummaryCard(state.aiSummary, state));
     }
 
-    // Done / Goodnight button
+    // Done / Goodnight button — now this is where the screen dims down and
+    // drifts into goodnight, AFTER the summary above has been read.
     wrap.appendChild(
-      UI.btn(t('app.done'), {
+      UI.btn(t('dec.driftGoodnight'), {
         class: 'btn-ghost btn-block',
+        icon: 'moon',
         onClick: function () {
           UI.haptic('success');
-          // Remove dim overlay if still present
-          if (state.dimOverlay && state.dimOverlay.parentNode) {
-            state.dimOverlay.style.opacity = '0';
-            setTimeout(function () {
-              if (state.dimOverlay && state.dimOverlay.parentNode) {
-                state.dimOverlay.parentNode.removeChild(state.dimOverlay);
-              }
-            }, 600);
-          }
-          // Enter Goodnight mode if available, else fall back to home
-          if (window.Night && typeof Night.start === 'function') {
-            Night.start();
-          } else {
-            Anchor.go('home');
-          }
+          dimAndGoodnight();
         },
       })
     );
@@ -716,68 +704,51 @@
     // Haptic: session saved
     UI.haptic('success');
 
-    // Dim overlay — animate the screen toward near-black over ~3s
-    const overlay = UI.el('div', {
-      style: {
-        position: 'fixed',
-        inset: '0',
-        background: '#000',
-        opacity: '0',
-        zIndex: '9000',
-        pointerEvents: 'none',
-        transition: 'opacity 3s ease',
-      },
-    });
-    document.body.appendChild(overlay);
-    state.dimOverlay = overlay;
+    // Go straight to the finish/summary screen so the person FIRST sees what
+    // they set down tonight. The "dimming your light" transition now happens
+    // afterward — only once they choose to drift into goodnight (see
+    // dimAndGoodnight, wired to the Done button).
+    state.screen = 'finish';
+    state.aiLoading = true;
+    state.aiSummary = null;
+    rerender();
 
-    // Dim label
-    const dimLabel = UI.el('div', {
-      style: {
-        position: 'fixed',
-        inset: '0',
-        zIndex: '9001',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: '1rem',
-        letterSpacing: '0.05em',
-        opacity: '0',
-        transition: 'opacity 1.5s ease 0.5s',
-        pointerEvents: 'none',
-      },
-    }, t('dec.dimLight'));
+    // Kick off the AI summary asynchronously
+    generateAiSummary(dump, buckets, state, rerender);
+  }
+
+  // ---- dim the screen, then drift into Goodnight ----------------------------
+  // Called from the finish screen AFTER the summary has been shown.
+  function dimAndGoodnight() {
+    const overlay = UI.el('div', { style: {
+      position: 'fixed', inset: '0', background: '#000', opacity: '0',
+      zIndex: '9000', pointerEvents: 'none', transition: 'opacity 3s ease',
+    } });
+    const dimLabel = UI.el('div', { style: {
+      position: 'fixed', inset: '0', zIndex: '9001', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)',
+      fontSize: '1rem', letterSpacing: '0.05em', opacity: '0',
+      transition: 'opacity 1.5s ease 0.5s', pointerEvents: 'none',
+    } }, t('dec.dimLight'));
+    document.body.appendChild(overlay);
     document.body.appendChild(dimLabel);
 
-    // Start the animation after a brief tick so the transition fires
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
-        overlay.style.opacity = '0.82';
+        overlay.style.opacity = '0.92';
         dimLabel.style.opacity = '1';
       });
     });
 
-    // After 3.2s transition to finish screen, remove the dim label, then run AI
+    // after the dim completes, enter Goodnight, then lift the dim to reveal it
     setTimeout(function () {
       if (dimLabel.parentNode) dimLabel.parentNode.removeChild(dimLabel);
-      // fade overlay from 0.82 -> 0 slowly before finish
-      overlay.style.transition = 'opacity 1.2s ease';
+      if (window.Night && typeof Night.start === 'function') Night.start();
+      else if (window.Anchor) Anchor.go('home');
+      overlay.style.transition = 'opacity 1s ease';
       overlay.style.opacity = '0';
-      setTimeout(function () {
-        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-        state.dimOverlay = null;
-      }, 1200);
-
-      // Show finish screen with loading indicator
-      state.screen = 'finish';
-      state.aiLoading = true;
-      state.aiSummary = null;
-      rerender();
-
-      // Kick off AI summary asynchronously
-      generateAiSummary(dump, buckets, state, rerender);
-    }, 3400);
+      setTimeout(function () { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 1000);
+    }, 3200);
   }
 
   // ---- AI summary generation ------------------------------------------------

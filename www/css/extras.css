@@ -24,6 +24,20 @@
 .tk-card .tk-sub { font-size: 0.78rem; color: var(--ink-faint); line-height: 1.35; }
 .tk-card .tk-shine { position: absolute; inset: 0; background: radial-gradient(circle at 80% 0%, rgba(255,255,255,0.14), transparent 60%); pointer-events: none; }
 
+/* the AI "made for you" session — a featured card that spans the full row */
+.tk-card-ai { grid-column: 1 / -1; min-height: 96px;
+  background:
+    linear-gradient(135deg, rgba(var(--a1-rgb),0.22), rgba(var(--a2-rgb),0.16) 55%, rgba(var(--a3-rgb),0.14)),
+    var(--glass-bg);
+  border-color: rgba(var(--a1-rgb),0.4); }
+.tk-card-ai .tk-ico { font-size: 2rem; }
+.tk-card-ai .tk-name { font-size: 1.05rem; }
+.tk-ai-badge { position: absolute; top: 12px; right: 12px; font-size: 0.62rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink);
+  padding: 3px 9px; border-radius: 999px; background: rgba(var(--a1-rgb),0.3); border: 1px solid rgba(255,255,255,0.22); }
+.tk-ai-progress { width: 200px; max-width: 70vw; height: 5px; border-radius: 999px; background: rgba(255,255,255,0.12); overflow: hidden; }
+.tk-ai-progress > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--a3), var(--a1)); transition: width 0.6s var(--ease-out); }
+
 /* the breathing/grounding stage */
 .tk-stage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s5); padding: var(--s7) var(--s4); min-height: 60dvh; text-align: center; }
 .tk-orb { width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle at 38% 34%, var(--a3), var(--a1) 65%, var(--a2)); box-shadow: 0 0 80px -8px var(--a1); transition: transform 4s var(--ease-in-out), box-shadow 4s var(--ease-in-out); display: grid; place-items: center; }
@@ -41,6 +55,25 @@
 .garden-caption { position: absolute; left: var(--s4); bottom: var(--s4); z-index: 2; }
 .garden-caption .gc-count { font-size: 1.8rem; font-weight: 700; }
 .garden-caption .gc-lbl { font-size: 0.8rem; color: rgba(255,255,255,0.7); }
+
+/* ---- mini garden: the living header on Home ---- */
+.garden-mini { position: relative; border-radius: var(--r-lg); overflow: hidden; cursor: pointer;
+  border: 1px solid var(--glass-stroke);
+  background: linear-gradient(180deg, #0c1430 0%, #122046 55%, #0a1733 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 14px 36px -22px rgba(0,0,0,0.7);
+  margin-bottom: var(--s4); transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur) var(--ease-out); }
+.garden-mini:active { transform: scale(0.985); }
+.garden-mini .garden-canvas { display: block; width: 100%; height: 100%; position: absolute; inset: 0; }
+/* today's inner weather tints the header glow */
+.garden-mini[data-wx="sun"]   { box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 14px 40px -20px rgba(255,200,120,0.45); }
+.garden-mini[data-wx="rain"]  { filter: saturate(0.92) brightness(0.96); }
+.garden-mini[data-wx="storm"] { filter: saturate(0.85) brightness(0.9); }
+.garden-mini.checked { box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 16px 44px -20px rgba(var(--a1-rgb),0.5); }
+.garden-mini-cap { position: absolute; left: 14px; bottom: 11px; z-index: 2; display: flex; align-items: center; gap: 7px;
+  padding: 5px 11px 5px 8px; border-radius: 999px; background: rgba(8,14,34,0.5); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.10); }
+.garden-mini-cap .gm-emoji { font-size: 1rem; line-height: 1; }
+.garden-mini-cap .gm-txt { font-size: 0.74rem; font-weight: 600; color: rgba(255,255,255,0.86); letter-spacing: 0.01em; }
 
 .grd-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s3); }
 .grd-stat { padding: var(--s4); border-radius: var(--r-md); display: flex; align-items: center; gap: var(--s3); }

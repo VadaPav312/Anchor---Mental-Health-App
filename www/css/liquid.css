@@ -1,0 +1,136 @@
+/* ===========================================================================
+   liquid.css — "Living Glass" overhaul (the iOS-26 Liquid Glass direction).
+   Loads LAST so it refines the existing glass primitives in glass.css /
+   anchor.css / refresh.css rather than replacing them.
+
+   Three pillars, all built to respect ONE hard rule learned the hard way
+   (see glass.css:185): NEVER run an infinite animation over a backdrop-filter
+   layer — it makes iOS WebKit flash the blurred surface gray and lags taps.
+   So everything here is either static, or driven by real interaction
+   (scroll / pointer), never an idle loop.
+
+     1. Depth tiers       — content floats, chrome recedes; richer specular rims.
+     2. Floating dock     — the nav + top bar read as detached Liquid Glass.
+     3. Reactive light    — a specular highlight that follows your touch/cursor,
+                            and chrome that recedes as you scroll, surfaces at rest.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1 · DEPTH TIERS — deepen the card stack so content reads as primary, with a
+   crisper top-edge "light catch" and a softer, wider grounding shadow. Tuned to
+   refract the moving inner-weather background (when enabled) through the rim.
+   --------------------------------------------------------------------------- */
+.glass-card {
+  box-shadow:
+    0 24px 60px -26px var(--glass-shadow),
+    0 6px 16px -10px rgba(0,0,0,0.34),
+    inset 0 1px 0 0 rgba(255,255,255,0.14),
+    inset 0 0 0 0.5px rgba(255,255,255,0.05);
+}
+body.wxbg-on .glass-card {
+  /* let the drifting weather colour read through the glass a touch more */
+  backdrop-filter: blur(var(--blur)) saturate(190%) brightness(1.03);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(190%) brightness(1.03);
+}
+
+/* ---------------------------------------------------------------------------
+   3 · REACTIVE LIGHT — a soft specular bloom that follows the pointer/finger.
+   Sits BELOW the card's content (z-index:-1 within its isolated context) so it
+   can never wash out text. Fades in only while lit/pressed — no idle loop.
+   --------------------------------------------------------------------------- */
+.glass-card::after {
+  content: "";
+  position: absolute; inset: 0; z-index: -1;
+  border-radius: inherit; pointer-events: none;
+  background: radial-gradient(220px 220px at var(--mx, 50%) var(--my, 0%),
+    rgba(255,255,255,0.20), rgba(255,255,255,0.06) 42%, transparent 66%);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease-out);
+}
+.glass-card.lit::after,
+.glass-card:active::after { opacity: 1; }
+/* tappable cards press a hair deeper for a tactile, liquid give */
+.glass-card.sheen:active,
+.glass-card[onclick]:active { transform: scale(0.985); }
+
+/* brighter, more dimensional specular rim than the base card */
+.glass-card::before { opacity: 0.85; }
+
+/* ---------------------------------------------------------------------------
+   2 · FLOATING DOCK — the bottom nav becomes a detached Liquid-Glass pill:
+   stronger blur, a bright top light-catch, a layered hover shadow, and a faint
+   inner floor shadow so it reads as a single floating slab of glass.
+   --------------------------------------------------------------------------- */
+.navdock {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02) 55%, rgba(255,255,255,0.05));
+  backdrop-filter: blur(var(--blur-strong)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(180%);
+  box-shadow:
+    0 26px 60px -22px var(--glass-shadow),
+    0 8px 22px -12px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 -1px 0 rgba(0,0,0,0.22);
+  transition:
+    transform var(--dur) var(--ease-out),
+    opacity var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+/* a masked gradient border = the specular "light running along the bevel" */
+.navdock::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+  background: linear-gradient(140deg,
+    var(--glass-hi) 0%, rgba(255,255,255,0.04) 24%, transparent 52%,
+    rgba(255,255,255,0.05) 78%, rgba(255,255,255,0.28) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none; opacity: 0.8;
+}
+
+/* topbar matches the dock's material and deepens as content scrolls under it */
+.topbar {
+  transition: background var(--dur) var(--ease-out),
+    backdrop-filter var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out);
+}
+body.scrolled .topbar {
+  background: rgba(255,255,255,0.045);
+  backdrop-filter: blur(var(--blur-strong)) saturate(170%);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(170%);
+  border-bottom-color: var(--glass-stroke);
+}
+
+/* ---------------------------------------------------------------------------
+   SCROLL-REACTIVE CHROME — while you're actively scrolling, the dock recedes
+   (sinks, shrinks, fades) so content owns the screen; the moment you stop, it
+   glides back up to the surface. Driven by liquid.js toggling .nav-recede.
+   --------------------------------------------------------------------------- */
+body.nav-recede .navdock {
+  transform: translateY(14px) scale(0.97);
+  opacity: 0.8;
+  box-shadow:
+    0 18px 44px -24px var(--glass-shadow),
+    inset 0 1px 0 rgba(255,255,255,0.16);
+}
+/* the raised orb keeps presence but eases down with the bar */
+body.nav-recede .navorb { box-shadow: 0 8px 20px -10px rgba(var(--a2-rgb),0.6), inset 0 1px 0 rgba(255,255,255,0.5); }
+
+/* primary action buttons inherit the same deeper light-catch */
+.btn-primary {
+  box-shadow:
+    0 14px 34px -12px rgba(var(--a2-rgb),0.62),
+    0 2px 6px -3px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.45),
+    inset 0 -1px 0 rgba(0,0,0,0.12);
+}
+
+/* daylight theme: keep the bloom subtle so it doesn't blow out light surfaces */
+body.theme-daylight .glass-card::after {
+  background: radial-gradient(220px 220px at var(--mx,50%) var(--my,0%),
+    rgba(255,255,255,0.5), rgba(255,255,255,0.12) 42%, transparent 66%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navdock, body.nav-recede .navdock { transform: none; }
+  .glass-card::after { transition: none; }
+}

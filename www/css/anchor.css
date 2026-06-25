@@ -178,6 +178,53 @@ body[data-weather="sun"]   .ambient { filter: hue-rotate(-18deg) saturate(1.2) b
 .insight .ins-kicker { display: flex; align-items: center; gap: 7px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--a1); font-weight: 700; margin-bottom: 7px; }
 .insight .ins-text { font-size: 1.02rem; line-height: 1.5; font-weight: 500; }
 .insight .ins-meta { display: flex; gap: var(--s3); margin-top: var(--s3); flex-wrap: wrap; }
+
+/* cause → effect thread: the signature visual on the home insight card */
+.cause-thread { display: flex; align-items: stretch; gap: 6px; margin-top: 4px; }
+.cause-thread .ce-node { flex: 0 0 auto; width: 92px; padding: 10px 6px; border-radius: var(--r-md);
+  background: var(--glass-bg-faint); border: 1px solid var(--glass-stroke-soft);
+  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+  animation: pop .45s var(--ease-spring) both; }
+.cause-thread .ce-node:last-child { animation-delay: .28s; }
+.cause-thread .ce-emoji { font-size: 1.4rem; line-height: 1; }
+.cause-thread .ce-lbl { font-size: 0.68rem; font-weight: 700; line-height: 1.15; color: var(--ink-soft); }
+.cause-thread .ce-link { position: relative; flex: 1 1 auto; min-width: 40px; display: flex; align-items: center; justify-content: center; }
+.cause-thread .ce-flow { position: absolute; left: 0; right: 14px; top: 50%; height: 3px; transform: translateY(-50%);
+  border-radius: 999px; background: linear-gradient(90deg, rgba(var(--a1-rgb),0.15), rgba(var(--a1-rgb),0.9));
+  background-size: 220% 100%; animation: ce-flow 1.8s linear infinite; }
+@keyframes ce-flow { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+.cause-thread .ce-arrow { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 16px; height: 16px;
+  color: var(--a1); display: inline-flex; }
+.cause-thread .ce-lag { position: relative; z-index: 1; font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--ink); background: var(--bg-1); padding: 2px 7px; border-radius: 999px;
+  border: 1px solid var(--glass-stroke-soft); white-space: nowrap; transform: translateY(-13px); }
+@media (prefers-reduced-motion: reduce) { .cause-thread .ce-flow { animation: none; } }
+
+/* share-today card */
+.dash-share-btn { opacity: 0.7; transition: opacity var(--dur-fast); }
+.dash-share-btn:active { opacity: 1; transform: scale(0.92); }
+.share-preview { width: 100%; max-width: 320px; margin: 0 auto; border-radius: var(--r-lg);
+  box-shadow: 0 24px 60px -24px rgba(0,0,0,0.7); border: 1px solid var(--glass-stroke); }
+
+/* onboarding living-preview montage */
+.onb-prev-bars { display: flex; gap: 6px; margin-bottom: 12px; }
+.onb-prev-bars .opb { flex: 1 1 0; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.12); overflow: hidden; position: relative; }
+.onb-prev-bars .opb > i { position: absolute; inset: 0; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--a1), var(--a2)); }
+.onb-prev-bars .opb.done > i { width: 100%; }
+.onb-prev-bars .opb.active > i { width: 100%; animation: opb-fill 4.2s linear forwards; }
+@keyframes opb-fill { from { width: 0; } to { width: 100%; } }
+.onb-prev { padding: 0; overflow: hidden; }
+.onb-prev-stage { position: relative; min-height: 232px; display: flex; align-items: stretch; }
+.onb-prev-scene { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 14px; animation: prev-in .6s var(--ease-out) both; }
+@keyframes prev-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+.onb-prev-scene > * { width: 100%; }
+.onb-prev-cap { margin-top: 14px; min-height: 38px; line-height: 1.4; animation: fade .5s var(--ease-out) both; }
+.onb-prev-weather { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.onb-prev-wx { font-size: 5rem; line-height: 1; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.4)); animation: float-y 3.4s ease-in-out infinite; }
+.onb-prev-insight { text-align: center; }
+.onb-prev-level { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.onb-prev-spark { animation: pop .6s var(--ease-spring) both; }
 .confbar { height: 5px; border-radius: 999px; background: rgba(255,255,255,0.1); overflow: hidden; flex: 1 1 80px; align-self: center; }
 .confbar > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--a3), var(--a1)); }
 

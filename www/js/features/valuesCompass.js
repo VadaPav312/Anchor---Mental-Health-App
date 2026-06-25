@@ -129,7 +129,7 @@
     const onTrack = lived >= target;
     const streak = valueStreak(v.id);
     const ring = UI.frag(UI.ring(lived, target, {
-      size: 62, stroke: 7, text: lived + '/' + target,
+      size: 62, stroke: 7, text: lived + '/' + target, textSize: '0.92rem',
       color: onTrack ? ['var(--a3)', 'var(--a1)'] : ['var(--a1)', 'var(--a2)'],
     }));
     return UI.el('button', { class: 'glass-card val-box', onclick: () => openEditSheet(section) }, [
@@ -269,11 +269,12 @@
       const livedBtn = UI.el('button', {
         class: 'chip' + (livedSet.has(v.id) ? ' active' : ''),
         onclick: () => {
-          UI.haptic('light');
           if (livedSet.has(v.id)) {
+            UI.haptic('light');
             livedSet.delete(v.id);
             livedBtn.classList.remove('active');
           } else {
+            (UI.hapticCommit || UI.haptic)('light');   // a "lived it" beat — this one matters
             livedSet.add(v.id);
             livedBtn.classList.add('active');
             // mutually exclusive: can't be both lived and crowded

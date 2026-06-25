@@ -372,6 +372,58 @@
   function applyWeatherTint() {
     const wx = Store.derive.todayWeather();
     if (wx) document.body.setAttribute('data-weather', wx); else document.body.removeAttribute('data-weather');
+    applyWeatherBg();
+  }
+
+  // ---- INNER-WEATHER BACKGROUND (opt-in) -----------------------------------
+  // The whole app can quietly *become* today's inner weather — drifting clouds
+  // on an overcast day, soft rain when it's low, a warm glow when it's bright.
+  // It's intentionally faint so glass + text stay perfectly readable, and it's
+  // off by default (Settings → Personalize). This fuses two systems Anchor
+  // already had — the emotional-weather model and the living background — into
+  // one ambient surface that breathes with how you actually feel.
+  let _wxBgKey = null;
+  function applyWeatherBg() {
+    const host = document.getElementById('wxbg'); if (!host) return;
+    const on = Store.get('settings.weatherBg', false);
+    const wx = on ? (Store.derive.todayWeather() || 'cloud') : null;
+    const key = on ? wx : 'off';
+    if (key === _wxBgKey) return;   // nothing changed — don't rebuild the scene
+    _wxBgKey = key;
+    document.body.classList.toggle('wxbg-on', !!on);
+    UI.clear(host);
+    if (!on || !wx) return;
+    host.setAttribute('data-wx', wx);
+
+    const add = (cls, n, build) => { for (let i = 0; i < n; i++) host.appendChild(build(i, UI.el('div', { class: cls }))); };
+    const rnd = (a, b) => a + Math.random() * (b - a);
+
+    if (wx === 'sun' || wx === 'clear') {
+      const glow = UI.el('div', { class: 'wxb-glow' }); host.appendChild(glow);
+      add('wxb-mote', wx === 'sun' ? 14 : 9, (i, el) => {
+        el.style.left = rnd(0, 100) + '%'; el.style.top = rnd(0, 100) + '%';
+        el.style.animationDuration = rnd(7, 16) + 's'; el.style.animationDelay = (-rnd(0, 12)) + 's';
+        return el;
+      });
+    }
+    if (wx === 'cloud' || wx === 'fog' || wx === 'rain' || wx === 'storm') {
+      add('wxb-cloud', wx === 'fog' ? 6 : 4, (i, el) => {
+        const w = rnd(220, 460);
+        el.style.width = w + 'px'; el.style.height = (w * 0.5) + 'px';
+        el.style.top = rnd(2, 64) + '%';
+        el.style.animationDuration = rnd(46, 96) + 's'; el.style.animationDelay = (-rnd(0, 60)) + 's';
+        el.style.opacity = (wx === 'fog' ? 0.5 : 0.34);
+        return el;
+      });
+    }
+    if (wx === 'rain' || wx === 'storm') {
+      add('wxb-drop', wx === 'storm' ? 70 : 46, (i, el) => {
+        el.style.left = rnd(0, 100) + '%';
+        el.style.animationDuration = rnd(0.5, 0.95) + 's'; el.style.animationDelay = (-rnd(0, 2)) + 's';
+        return el;
+      });
+    }
+    if (wx === 'storm') host.appendChild(UI.el('div', { class: 'wxb-flash' }));
   }
 
   // ---- boot ---------------------------------------------------------------
@@ -408,6 +460,18 @@
     Store.on('settings', () => applyTheme());
 
     gate();
+    hideLoader();
+  }
+
+  // Fade out the branded loading screen once the first real screen has painted.
+  function hideLoader() {
+    const el = document.getElementById('app-loader');
+    if (!el) return;
+    // let the first frame settle so we cross-fade into content, not a flash
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.classList.add('app-loader-out');
+      setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 600);
+    }));
   }
 
   // Sign-in gate → onboarding → app.
@@ -515,5 +579,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 
-  window.App = { boot, gate, startApp, applyTheme, applyAccent, applyDensity, applyDoodles, applyBgStyle, applyFontScale, applyTimeWash, applyWeatherTint, buildTabbar, hideChrome, ACCENTS };
+  window.App = { boot, gate, startApp, applyTheme, applyAccent, applyDensity, applyDoodles, applyBgStyle, applyFontScale, applyTimeWash, applyWeatherTint, applyWeatherBg, buildTabbar, hideChrome, hideLoader, ACCENTS };
 })();

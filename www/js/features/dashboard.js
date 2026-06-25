@@ -21,11 +21,30 @@
 
   function render(root) {
     // ---- header ----
-    root.appendChild(UI.el('div', { class: 'page-head' }, [
+    // a one-time "your streak was saved" beat when a grace day quietly caught a miss
+    if (Store.raw.gamification && Store.raw.gamification.graceJustUsed && !Store.get('session.graceSeen')) {
+      Store.set('session.graceSeen', Store.today());
+      setTimeout(() => { UI.toast('🛟 ' + t('dash.streakSaved'), 'good'); if (UI.hapticPop) UI.hapticPop(); }, 600);
+    }
+
+    root.appendChild(UI.el('div', { class: 'page-head', style: { position: 'relative' } }, [
+      UI.el('button', { class: 'icon-btn dash-share-btn', 'aria-label': t('dash.shareToday'),
+        title: t('dash.shareToday'), onclick: (e) => { e.stopPropagation(); shareToday(); },
+        style: { position: 'absolute', top: '2px', right: '0' } },
+        UI.frag(`<span style="width:20px;height:20px;display:inline-flex">${Icons.get('download')}</span>`)),
       UI.el('div', { class: 'eyebrow' }, UI.fmt.date(Store.today(), { weekday: 'long', month: 'long', day: 'numeric' })),
       UI.el('h1', { class: 'page-title serif' }, greeting()),
-      Store.streak() > 1 ? UI.el('div', { class: 'small soft mt1' }, '🔥 ' + t('dash.streak', { n: Store.streak() })) : null,
+      Store.streak() > 1 ? UI.el('div', { class: 'row gap2 mt1', style: { alignItems: 'center' } }, [
+        UI.el('span', { class: 'small soft' }, '🔥 ' + t('dash.streak', { n: Store.streak() })),
+        Store.graceAvailable() ? UI.el('span', { class: 'badge calm', title: t('dash.graceHint') }, '🛟 ' + t('dash.graceDay')) : null,
+      ]) : null,
     ]));
+
+    // ---- living header: a miniature garden that grows with you, tinted by
+    // today's inner weather. The centerpiece that makes Home feel alive. ----
+    if (window.Garden && Garden.miniScene) {
+      try { root.appendChild(Garden.miniScene({ height: 124 })); } catch (e) {}
+    }
 
     const grid = UI.el('div', { class: 'col gap4 stagger dash-grid' });
     root.appendChild(grid);
@@ -44,6 +63,7 @@
       { key: 'tiles',      build: () => UI.el('div', { class: 'tiles' }, [sleepTile(), energyTile()]) },
       { key: 'insight',    build: () => insightCard() },
       { key: 'winddown',   build: () => windDownCard() },
+      { key: 'valuedrift', build: () => valueDriftCard() },
       { key: 'experiment', build: () => { const e = Store.derive.activeExperiment(); return e ? experimentCard(e) : null; } },
       { key: 'quicklog',   build: () => quickLogCard() },
       { key: 'values',     build: () => valuesCard() },
@@ -195,26 +215,71 @@
     ]);
   }
 
+  // Friendly, human label for a raw metric key used in Pattern Detective.
+  function metricLabel(key) {
+    const m = {
+      sleepTempF: t('metric.sleepTempF'), sleepDur: t('metric.sleepDur'),
+      noise: t('metric.noise'), sleepScore: t('metric.sleepScore'),
+      energyNet: t('metric.energyNet'), valence: t('metric.valence'),
+      energyMood: t('metric.energyMood'), light: t('metric.light'),
+      journalSentiment: t('metric.journalSentiment'), restful: t('metric.restful'), humidity: t('metric.humidity'),
+    };
+    return m[key] || key;
+  }
+  function metricEmoji(key) {
+    const m = { sleepTempF: '🌡️', sleepDur: '🛏️', noise: '🔊', sleepScore: '😴', energyNet: '🔋',
+      valence: '🌤️', energyMood: '⚡', light: '💡', journalSentiment: '✍️', restful: '🌙', humidity: '💧' };
+    return m[key] || '•';
+  }
+  function lagLabel(lag) {
+    if (lag === 0) return t('pat.lagSame');
+    if (lag === 1) return t('pat.lag1');
+    if (lag === 2) return t('pat.lag2');
+    return t('pat.lag3');
+  }
+
+  // The flagship insight, rendered as an animated CAUSE → EFFECT thread: two
+  // nodes joined by a flowing connector, with the delay called out on the line.
+  // It turns an abstract correlation into something you can see, which is the
+  // single most novel thing Anchor does. Falls back gracefully while computing.
   function insightCard() {
     const wrap = UI.el('div', { class: 'insight glass-card' }, [
       UI.el('div', { class: 'ins-glow' }),
       UI.el('div', { class: 'ins-kicker' }, [UI.frag(`<span style="width:15px">${Icons.get('spark')}</span>`), t('dash.topInsight')]),
-      UI.el('div', { class: 'ins-text', id: 'dashInsight' }, t('app.thinking')),
+      UI.el('div', { class: 'ins-body', id: 'dashInsight' }, [UI.el('div', { class: 'ins-text' }, t('app.thinking'))]),
     ]);
-    // compute (sync, cheap) after mount
     setTimeout(() => {
-      const node = wrap.querySelector('#dashInsight');
-      if (!node) return;
+      const body = wrap.querySelector('#dashInsight');
+      if (!body) return;
       const top = window.PatternDetective ? PatternDetective.topInsight() : null;
-      if (top) {
-        node.textContent = top.text;
+      UI.clear(body);
+      if (top && top.cause && top.effect) {
+        body.appendChild(causeEffectThread(top));
+        body.appendChild(UI.el('div', { class: 'ins-text', style: { marginTop: '12px' } }, top.text));
+        wrap.style.cursor = 'pointer';
+        wrap.onclick = () => { UI.haptic('light'); Anchor.go('patterns'); };
+      } else if (top) {
+        body.appendChild(UI.el('div', { class: 'ins-text' }, top.text));
         wrap.style.cursor = 'pointer';
         wrap.onclick = () => Anchor.go('patterns');
       } else {
-        node.textContent = t('dash.noInsightsYet');
+        body.appendChild(UI.el('div', { class: 'ins-text' }, t('dash.noInsightsYet')));
       }
     }, 30);
     return wrap;
+  }
+
+  function causeEffectThread(ins) {
+    const node = (key) => UI.el('div', { class: 'ce-node' }, [
+      UI.el('div', { class: 'ce-emoji' }, metricEmoji(key)),
+      UI.el('div', { class: 'ce-lbl' }, metricLabel(key)),
+    ]);
+    const connector = UI.el('div', { class: 'ce-link' }, [
+      UI.el('div', { class: 'ce-flow' }),
+      UI.el('div', { class: 'ce-lag' }, lagLabel(ins.lag)),
+      UI.frag(`<span class="ce-arrow">${Icons.get('chevron')}</span>`),
+    ]);
+    return UI.el('div', { class: 'cause-thread' }, [node(ins.cause), connector, node(ins.effect)]);
   }
 
   function windDownCard() {
@@ -274,6 +339,55 @@
         UI.el('span', { class: 'chip' + (lived.has(v.id) ? ' active' : ''), style: { fontSize: '0.8rem' } }, (lived.has(v.id) ? '✓ ' : '') + v.name)
       )),
     ], { onClick: () => Anchor.go('values') });
+  }
+
+  // ---- VALUES DRIFT NUDGE: catch a value falling behind its weekly target ---
+  // Anchor's whole second conviction is "meaning beats mood" — so when one of
+  // your chosen values is quietly slipping behind the pace YOU set for it, the
+  // home screen says so, kindly, with one concrete way to live it today. Only
+  // shows the single value furthest behind, and only once the week is underway,
+  // so it nudges without nagging.
+  function weeklyLivedCount(vid) {
+    let n = 0;
+    for (let i = 0; i < 7; i++) {
+      const dk = Store.daysAgoKey(i);
+      const c = Store.valuesChecks.all().find(x => x.date === dk);
+      if (c && c.lived && c.lived.indexOf(vid) !== -1) n++;
+    }
+    return n;
+  }
+  function valueDriftCard() {
+    const vals = Store.values.all();
+    if (!vals.length) return null;
+    // need at least a couple of compass-check days before judging "behind"
+    if (Store.valuesChecks.count() < 2) return null;
+    const dow = new Date().getDay();                 // 0 Sun … 6 Sat
+    const weekFrac = (dow === 0 ? 7 : dow) / 7;       // how far into the week we are
+    let worst = null;
+    vals.forEach(v => {
+      const target = v.target || 4;
+      const lived = weeklyLivedCount(v.id);
+      const expected = target * weekFrac;             // pace you'd be at if on track
+      const gap = expected - lived;
+      if (lived < target && gap >= 1 && (!worst || gap > worst.gap)) worst = { v, target, lived, gap };
+    });
+    if (!worst) return null;
+    return UI.el('div', { class: 'glass-card card', style: { borderColor: 'rgba(255,210,122,0.32)' } }, [
+      UI.el('div', { class: 'row between gap3' }, [
+        UI.el('div', { class: 'grow' }, [
+          UI.el('div', { class: 'eyebrow', style: { color: 'var(--a5)' } }, '🧭 ' + t('dash.driftEyebrow')),
+          UI.el('div', { class: 'b', style: { marginTop: '2px' } }, t('dash.driftTitle', { value: worst.v.name })),
+          UI.el('div', { class: 'small soft mt1', style: { lineHeight: '1.45' } },
+            t('dash.driftSub', { lived: worst.lived, target: worst.target, value: worst.v.name })),
+        ]),
+        UI.el('div', { style: { flexShrink: '0' } }, [
+          UI.frag(UI.ring(worst.lived, worst.target, { size: 52, stroke: 6, text: worst.lived + '/' + worst.target, textSize: '0.78rem', color: ['var(--a5)', 'var(--a1)'] })),
+        ]),
+      ]),
+      UI.el('div', { class: 'row gap2 mt3' }, [
+        UI.btn(t('dash.driftCta'), { class: 'btn-primary btn-sm grow', onClick: () => { UI.haptic('light'); Anchor.go('values'); } }),
+      ]),
+    ]);
   }
 
   // ---- ENERGY BAR (vitality from rest + movement, tied to mental health) ---
@@ -475,10 +589,19 @@
     const e = Store.derive.energyToday();
     const top = window.PatternDetective ? PatternDetective.topInsight() : null;
     const dec = Store.decompress.all().slice(-1)[0];
+    // the most recent thing they actually wrote — so the briefing can reflect
+    // their OWN words back, which is what makes it feel irreplaceably theirs.
+    const lastJ = Store.journal.all().filter(j => j.text && j.text.trim()).slice(-1)[0];
+    let lastJournal = null;
+    if (lastJ) {
+      const txt = lastJ.text.trim().replace(/\s+/g, ' ');
+      lastJournal = { when: UI.fmt.rel(lastJ.date), text: txt.length > 240 ? txt.slice(0, 240) + '…' : txt };
+    }
     return {
       name: Store.profile.name(), sleep: s, mood: m, energy: e,
       insight: top && top.text, tasks: (dec && dec.buckets && dec.buckets.act) || [],
       values: Store.values.all().map(v => v.name), streak: Store.streak(),
+      lastJournal,
     };
   }
 
@@ -490,11 +613,169 @@
       '- Streak: ' + c.streak + ' days\n' +
       '- Pattern Anchor noticed: ' + (c.insight || 'none yet') + '\n' +
       '- Their values: ' + (c.values.join(', ') || 'unset') + '\n' +
-      '- Tasks they set down last night to act on: ' + (c.tasks.length ? c.tasks.join('; ') : 'none') + '\n\n' +
-      'Write a warm, concise, NON-clinical morning briefing as JSON ONLY:\n' +
+      '- Tasks they set down last night to act on: ' + (c.tasks.length ? c.tasks.join('; ') : 'none') + '\n' +
+      (c.lastJournal ? '- The last thing they journaled (' + c.lastJournal.when + '): "' + c.lastJournal.text + '"\n' : '') +
+      '\n' +
+      'Write a warm, concise, NON-clinical morning briefing as JSON ONLY. ' +
+      (c.lastJournal ? 'In the summary, gently echo back ONE short phrase or theme from what they journaled (quote 2-5 of their own words) and connect it to today — this should feel personal, like you actually read it. Never be clinical about it.\n' : '\n') +
       '{ "summary": "<2-3 sentences reflecting how they are doing and what today might hold, grounded in the data>",\n' +
       '  "focus": ["<up to 3 small concrete focuses/tasks for today — fold in their set-down tasks and values>"],\n' +
       '  "closing": "<one short encouraging line>" }';
+  }
+
+  // =========================================================================
+  // SHARE CARD — "today at a glance". Renders a beautiful, on-brand image card
+  // (weather + vitality ring + streak + one AI line) entirely on a canvas, then
+  // offers the native share sheet (with a graceful download fallback on web).
+  // Reuses data Anchor already has — no new tracking, just a shareable moment.
+  // =========================================================================
+  function cssVar(name, fallback) {
+    try { const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return v || fallback; }
+    catch (e) { return fallback; }
+  }
+  function shareLine() {
+    const brief = Store.get('session.briefing', null);
+    if (brief && brief.data && brief.data.closing) return brief.data.closing;
+    if (brief && brief.data && brief.data.summary) return brief.data.summary;
+    const top = window.PatternDetective ? PatternDetective.topInsight() : null;
+    if (top && top.text) return top.text;
+    return t('share.defaultLine');
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function wrapText(ctx, text, maxW) {
+    const words = String(text).split(/\s+/); const lines = []; let line = '';
+    for (const w of words) {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; } else line = test;
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+  function buildShareCanvas() {
+    const W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    const a1 = cssVar('--a1', '#7c9cff'), a2 = cssVar('--a2', '#9d7cff'), a3 = cssVar('--a3', '#5fe0c8');
+    const bg0 = cssVar('--bg-0', '#05060f'), bg1 = cssVar('--bg-1', '#0b0e1d');
+
+    // background
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, bg1); g.addColorStop(1, bg0);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // accent glow top-right
+    const glow = ctx.createRadialGradient(W * 0.85, H * 0.08, 0, W * 0.85, H * 0.08, W * 0.8);
+    glow.addColorStop(0, a1 + '55'); glow.addColorStop(1, a1 + '00');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+
+    const M = 96;
+    // wordmark + date
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#ffffff'; ctx.font = '700 46px ui-serif, Georgia, serif';
+    ctx.fillText('⚓ Anchor', M, 150);
+    ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = '500 32px system-ui, sans-serif';
+    ctx.fillText(UI.fmt.date(Store.today(), { weekday: 'long', month: 'long', day: 'numeric' }), M, 200);
+
+    // weather
+    const wx = Store.derive.todayWeather() || 'cloud';
+    ctx.font = '160px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(UI.weatherEmoji(wx), W / 2, 470);
+    ctx.fillStyle = '#fff'; ctx.font = '600 52px system-ui, sans-serif';
+    ctx.fillText(UI.weatherName(wx), W / 2, 560);
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '500 30px system-ui, sans-serif';
+    ctx.fillText(t('dash.todayWeather'), W / 2, 605);
+
+    // vitality ring
+    const v = Store.derive.vitality();
+    const cx = W / 2, cy = 800, R = 130, sw = 22;
+    ctx.lineWidth = sw; ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+    const grd = ctx.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+    grd.addColorStop(0, a3); grd.addColorStop(1, a1);
+    ctx.strokeStyle = grd;
+    ctx.beginPath(); ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0.02, v.score / 100)); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = '700 86px system-ui, sans-serif';
+    ctx.fillText(String(v.score), cx, cy + 14);
+    ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = '600 28px system-ui, sans-serif';
+    ctx.fillText(t('vit.title').toUpperCase(), cx, cy + 64);
+
+    // streak + level chips
+    const lvl = (window.Gamify && Gamify.progress()) || { level: 1, name: '' };
+    ctx.font = '600 34px system-ui, sans-serif';
+    const chips = [];
+    if (Store.streak() > 0) chips.push('🔥 ' + t('dash.streak', { n: Store.streak() }));
+    if (lvl.name) chips.push('✨ ' + lvl.name);
+    let chipY = 1010;
+    ctx.textAlign = 'center';
+    // draw chips as a centered row of pills
+    const gap = 28; const padX = 34, chH = 64;
+    const widths = chips.map(s => ctx.measureText(s).width + padX * 2);
+    let totalW = widths.reduce((s, w) => s + w, 0) + gap * (chips.length - 1);
+    let cxr = W / 2 - totalW / 2;
+    chips.forEach((s, i) => {
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      roundRect(ctx, cxr, chipY - chH + 14, widths[i], chH, 32); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
+      ctx.fillText(s, cxr + padX, chipY);
+      cxr += widths[i] + gap;
+      ctx.textAlign = 'center';
+    });
+
+    // the one line
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.font = 'italic 500 40px ui-serif, Georgia, serif';
+    ctx.textAlign = 'center';
+    const lines = wrapText(ctx, '“' + shareLine() + '”', W - M * 2).slice(0, 3);
+    let ly = 1150;
+    lines.forEach(ln => { ctx.fillText(ln, W / 2, ly); ly += 56; });
+
+    // footer
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '500 28px system-ui, sans-serif';
+    ctx.fillText(t('share.footer'), W / 2, H - 70);
+    ctx.textAlign = 'left';
+    return c;
+  }
+
+  async function doShareImage(canvas) {
+    const text = t('share.text', { line: shareLine() });
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png', 0.95));
+    if (!blob) { Native.share && Native.share(text); return; }
+    try {
+      const file = new File([blob], 'anchor-today.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], text, title: 'Anchor' });
+        UI.haptic('success'); return;
+      }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    // fallback: download the PNG so the moment is still saved/shareable
+    try {
+      const url = URL.createObjectURL(blob);
+      const a = UI.el('a', { href: url, download: 'anchor-today.png' });
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      UI.toast(t('share.saved'), 'good'); UI.haptic('success');
+    } catch (e) { Native.share && Native.share(text); }
+  }
+
+  function shareToday() {
+    UI.haptic('light');
+    let canvas;
+    try { canvas = buildShareCanvas(); } catch (e) { Native.share && Native.share(t('share.text', { line: shareLine() })); return; }
+    const img = UI.el('img', { class: 'share-preview', src: canvas.toDataURL('image/png'), alt: 'Anchor — today' });
+    let m;
+    const closeBtn = UI.el('button', { class: 'btn btn-ghost btn-sm', onclick: () => { if (m) m.close(); } }, t('app.close'));
+    const shareBtn = UI.el('button', { class: 'btn btn-primary btn-sm', onclick: () => { if (m) m.close(); doShareImage(canvas); } }, t('app.share'));
+    m = UI.modal({
+      title: null,
+      body: UI.el('div', { class: 'col gap3', style: { textAlign: 'center' } }, [
+        UI.el('div', { class: 'eyebrow' }, t('dash.shareToday')),
+        img,
+      ]),
+      actions: [closeBtn, shareBtn],
+    });
   }
 
   Anchor.register({ id: 'home', labelKey: 'nav.home', icon: 'home', order: 10, tab: true, render });

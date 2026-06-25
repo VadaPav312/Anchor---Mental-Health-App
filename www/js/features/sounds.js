@@ -5,13 +5,15 @@
 // Registered as view 'sounds' and surfaced as a tab inside "Calm".
 // ===========================================================================
 (function () {
+  // Every swatch is a tinted dot rendered the same way (no mismatched emoji —
+  // there's no "pink circle" glyph, which is why pink used to be a lone flower).
   const COLORS = [
-    { id: 'white',  emoji: '⚪️', tint: '#e8ecff' },
-    { id: 'pink',   emoji: '🌸', tint: '#ffb6d4' },
-    { id: 'brown',  emoji: '🟤', tint: '#c9a47a' },
-    { id: 'blue',   emoji: '🔵', tint: '#7cc0ff' },
-    { id: 'violet', emoji: '🟣', tint: '#c89dff' },
-    { id: 'green',  emoji: '🟢', tint: '#7fe0a8' },
+    { id: 'white',  tint: '#e8ecff' },
+    { id: 'pink',   tint: '#ffb6d4' },
+    { id: 'brown',  tint: '#c9a47a' },
+    { id: 'blue',   tint: '#7cc0ff' },
+    { id: 'violet', tint: '#c89dff' },
+    { id: 'green',  tint: '#7fe0a8' },
   ];
 
   let ctx = null, srcNode = null, gainNode = null, current = null, vol = 0.5, timer = null, timerEndsAt = 0;
@@ -51,6 +53,12 @@
       let last = 0;
       for (i = 0; i < len; i++) { const w = Math.random() * 2 - 1; last = 0.86 * last + 0.14 * w; d[i] = last * 1.9; }
     }
+    // Normalize each colour to the same peak so the brighter, differentiated
+    // noises (blue/violet) aren't near-silent next to white/brown — every colour
+    // comes out clearly audible AND keeps its own character.
+    let peak = 0;
+    for (i = 0; i < len; i++) { const a = d[i] < 0 ? -d[i] : d[i]; if (a > peak) peak = a; }
+    if (peak > 0.0001) { const norm = 0.85 / peak; for (i = 0; i < len; i++) d[i] *= norm; }
     return buf;
   }
 
@@ -112,7 +120,11 @@
         borderRadius: 'var(--r-lg)', minHeight: '94px', justifyContent: 'center',
         '--snd-tint': c.tint,
       }, onclick: () => { current === c.id ? stop() : play(c.id); } }, [
-        UI.el('div', { style: { fontSize: '1.6rem' } }, c.emoji),
+        UI.el('div', { class: 'snd-dot', style: {
+          width: '34px', height: '34px', borderRadius: '50%',
+          background: 'radial-gradient(circle at 35% 30%, #fff, ' + c.tint + ' 62%, ' + c.tint + ')',
+          boxShadow: '0 4px 14px -4px ' + c.tint + ', inset 0 1px 0 rgba(255,255,255,0.6)',
+        } }),
         UI.el('div', { class: 'tiny b' }, t('snd.' + c.id)),
       ]);
       grid.appendChild(card);

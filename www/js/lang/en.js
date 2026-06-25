@@ -159,9 +159,19 @@ I18N.register('en', {
     sessionStay: 'Stay signed in', sessionStaySub: 'Anchor opens straight to your space — no sign-in each time.',
     sessionLogout: 'Sign me out on close', sessionLogoutSub: 'Best on a shared device — you’ll sign back in next time.',
     sessionNote: 'Either way, your data stays safe on this device.',
+    previewEyebrow: 'A glimpse ahead',
+    previewTitle: 'Anchor grows with you',
+    previewContinue: 'Beautiful — let’s begin',
+    prevGarden: 'Your garden grows every day you show up.',
+    prevWeather: 'Your moods become a landscape you can walk back through.',
+    prevInsight: 'Anchor surfaces the hidden, delayed causes behind how you feel.',
+    prevInsightEg: 'e.g. shorter sleep tends to dim your energy about a day later.',
+    prevLevel: 'And it celebrates you — gently — as you grow.',
+    prevLevelSub: 'Light, just for showing up.',
     ready: 'You’re anchored',
     readySub: 'The more you share, the clearer the picture becomes. Start with tonight.',
     enter: 'Enter Anchor',
+    exploreDemo: 'Explore with demo data',
   },
 
   brief: {
@@ -207,6 +217,14 @@ I18N.register('en', {
     continueExp: 'Experiment in progress',
     arrangeHint: 'Drag your widgets to reorder',
     swipeHint: 'Swipe ← → to switch sections',
+    streakSaved: 'A grace day saved your streak',
+    graceDay: 'Grace day',
+    graceHint: 'You’ve banked a grace day — miss a single day and your streak survives.',
+    driftEyebrow: 'Drifting',
+    driftTitle: '{value} is slipping this week',
+    driftSub: 'You’ve lived it {lived}/{target} days. One small step today keeps it on course.',
+    driftCta: 'Live it today',
+    shareToday: 'Share today',
   },
 
   sleep: {
@@ -310,6 +328,7 @@ I18N.register('en', {
     finishTitle: 'The day is closed',
     finishSub: 'Your loops are out of your head and on the page. Let the room go dark.',
     dimLight: 'Dimming your light…',
+    driftGoodnight: 'Dim the lights & drift off',
     goodnight: 'Goodnight, {name}.',
     historyTitle: 'Past wind-downs',
     mostDisruptive: 'Anchor noticed: your hardest sleep follows days with unprocessed “{cat}”.',
@@ -472,6 +491,7 @@ I18N.register('en', {
     density: 'Spacing', densitySub: 'How much room each card and widget gets.',
     densityCompact: 'Compact', densityCozy: 'Cozy', densitySpacious: 'Spacious',
     doodles: 'Background art', doodlesSub: 'Soft line-art woven into the backdrop.',
+    weatherBg: 'Inner-weather background', weatherBgSub: 'Let today’s emotional weather drift gently across the whole app.',
     bgStyle: 'Background', bgStyleSub: 'Animated gradient or a clean plain color.',
     bgGradient: 'Gradient', bgPlain: 'Plain',
     accent: 'Color', accentSub: 'Sets the background tone of the whole app.',
@@ -540,6 +560,28 @@ I18N.register('en', {
     parts: 'hands|arms|shoulders|face|stomach|legs|feet',
     compassionLines: 'This is a hard moment.|Hard moments are part of being human.|May I be kind to myself right now.|May I give myself what I need.',
     after: 'How do you feel now?', cycles: '{n} cycles', logged: 'Nice. That counts.',
+    // AI grounding — a live, personalized calming session
+    ai: 'Made for you', aiSub: 'A calming session composed for you, right now.',
+    aiTag: 'AI · live', aiYours: 'Your grounding',
+    aiPrefsTitle: 'What calms you?',
+    aiPrefsSub: 'Pick what tends to help — Anchor composes each session around it. You can change this anytime.',
+    aiPrefsPick: 'What helps you settle?',
+    aiPrefsNote: 'Anything else that grounds you? (optional)',
+    aiPrefsPlaceholder: 'e.g. the sound of rain, picturing the ocean, my dog…',
+    aiBegin: 'Compose my session', aiPickOne: 'Pick at least one, or add a note.',
+    aiGenerating: 'Composing your session…', aiGeneratingSub: 'Shaping a calm space around what helps you.',
+    aiSkip: 'Next', aiAgain: 'Another', aiEditPrefs: 'Edit what calms me',
+    prefNature: 'Nature', prefBreath: 'Breathing', prefBody: 'Body & movement', prefWords: 'Kind words',
+    prefSenses: 'Senses', prefImagine: 'Visualizing', prefStill: 'Stillness', prefSound: 'Sound',
+    fbIntro: 'Let’s take a few minutes, just for you.',
+    fbSettle: 'Settle into a comfortable position. Let your shoulders drop, and your eyes soften or close.',
+    fbBreath: 'Breathe in slowly through your nose… then let it out a little longer than it came in. Again, gently.',
+    fbSenses: 'Notice three things you can feel right now — the floor beneath you, your breath, the air on your skin.',
+    fbBody: 'Tense your hands for a moment… then let them fall loose. Feel the difference as they soften.',
+    fbImagine: 'Picture a place that feels safe and calm. Look around it slowly — its light, its sounds, its quiet.',
+    fbWords: 'Offer yourself one kind sentence, the way you would to a friend who was hurting.',
+    fbClose: 'Take one more slow breath. Notice that you’re still here — and you’re okay.',
+    fbClosing: 'You showed up for yourself. That matters.',
   },
 
   grd: {
@@ -557,6 +599,8 @@ I18N.register('en', {
     mAnchored: 'Anchored', mAnchoredSub: '30 days with Anchor.',
     keepGrowing: 'Keep tending — your garden remembers everything.',
     empty: 'Plant your first seed with a check-in.',
+    miniGrowing: '{n} growing',
+    miniCheckIn: 'Check in to grow today',
   },
 
   tl: {
@@ -593,6 +637,8 @@ I18N.register('en', {
     sleep_t: 'Sleep', sleep_d: 'A simple sleep journal — log each night by hand and watch your rest, environment and trends over time.',
     checkin_t: 'Check-in', checkin_d: 'A fast, expressive mood check-in that feeds your weather map and every insight.',
     journal_t: 'Journal', journal_d: 'Write freely; Anchor reads the tone and themes, and The Mirror notices shifts in how you write.',
+    mirror_t: 'The Mirror', mirror_d: 'A gentle, non-clinical read on HOW you write — the shifts in your language over time, never a diagnosis.',
+    sounds_t: 'Soundscapes', sounds_d: 'On-device noise — white, pink, brown and more — with a volume and a sleep timer, to settle or to sleep.',
     experiments_t: 'Experiments', experiments_d: 'Run real self-experiments and get an honest verdict on what actually works for you.',
     values_t: 'Values Compass', values_d: 'Check whether your days point toward what matters — living truer, not just feeling better.',
     energy_t: 'Energy Budget', energy_d: 'Track what drains and restores you, and learn your personal energy economy.',
@@ -605,5 +651,20 @@ I18N.register('en', {
 
   google: {
     signIn: 'Continue with Google', signingIn: 'Connecting to Google…', failed: 'Google sign-in unavailable here',
+  },
+
+  // friendly labels for raw metrics, used in the cause → effect insight thread
+  metric: {
+    sleepTempF: 'Room warmth', sleepDur: 'Sleep length', noise: 'Night noise',
+    sleepScore: 'Sleep quality', energyNet: 'Energy balance', valence: 'Mood',
+    energyMood: 'Energy', light: 'Light', journalSentiment: 'Journal tone',
+    restful: 'Restfulness', humidity: 'Humidity',
+  },
+
+  share: {
+    defaultLine: 'Showing up for myself, one day at a time.',
+    footer: 'Anchor · reflected back to you',
+    text: 'My day on Anchor — {line}',
+    saved: 'Saved — ready to share',
   },
 });
