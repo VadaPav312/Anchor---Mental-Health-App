@@ -20,25 +20,35 @@
     { id: 'home',        t: 'tour.home_t',        d: 'tour.home_d'        },
     { id: 'weather',     t: 'tour.weather_t',     d: 'tour.weather_d'     },
     { id: 'checkin',     t: 'tour.checkin_t',     d: 'tour.checkin_d'     },
+    { id: 'decompress',  t: 'tour.decompress_t',  d: 'tour.decompress_d'  },
     { id: 'patterns',    t: 'tour.patterns_t',    d: 'tour.patterns_d'    },
     { id: 'journal',     t: 'tour.journal_t',     d: 'tour.journal_d'     },
+    { id: 'mirror',      t: 'tour.mirror_t',      d: 'tour.mirror_d'      },
     { id: 'sleep',       t: 'tour.sleep_t',       d: 'tour.sleep_d'       },
     { id: 'energy',      t: 'tour.energy_t',      d: 'tour.energy_d'      },
     { id: 'calm',        t: 'tour.calm_t',        d: 'tour.calm_d'        },
+    { id: 'toolkit',     t: 'tour.toolkit_t',     d: 'tour.toolkit_d'     },
+    { id: 'sounds',      t: 'tour.sounds_t',      d: 'tour.sounds_d'      },
     { id: 'experiments', t: 'tour.experiments_t', d: 'tour.experiments_d' },
     { id: 'values',      t: 'tour.values_t',      d: 'tour.values_d'      },
     { id: 'journey',     t: 'tour.journey_t',     d: 'tour.journey_d'     },
+    { id: 'garden',      t: 'tour.garden_t',      d: 'tour.garden_d'      },
     { id: 'hub',         t: 'hub.title',          d: 'intro.hubDesc'      },
     { id: 'home',        t: 'tour.care_t',        d: 'tour.care_d'        },
   ];
 
   const FALLBACK_ICONS = {
     home: 'home', weather: 'weather', checkin: 'checkin', patterns: 'patterns',
-    journal: 'journal', sleep: 'sleep', energy: 'energy', calm: 'leaf',
-    experiments: 'lab', values: 'compass', journey: 'trend', hub: 'grid',
+    journal: 'journal', mirror: 'mirror', sleep: 'sleep', energy: 'energy', calm: 'leaf',
+    toolkit: 'leaf', sounds: 'sound', decompress: 'decompress',
+    experiments: 'lab', values: 'compass', journey: 'trend', garden: 'spark', hub: 'grid',
   };
 
   let currentStep = 0;
+  // When the tour auto-shows on first account setup it is FORCED: no skip, no X,
+  // so a brand-new user actually meets every feature once. Replaying it later
+  // (from Settings/You) is optional and keeps its exits.
+  let forced = false;
 
   function coachHost() { return document.getElementById('coach-host'); }
 
@@ -89,7 +99,9 @@
       UI.el('div', { class: 'col gap3', style: { marginTop: '28px' } }, [
         UI.btn(last ? t('intro.cta') : t('app.next'), { class: 'btn-primary btn-lg', block: true, icon: last ? 'spark' : null,
           onClick: function () { if (last) startCoach(); else { introStep++; renderIntro(); UI.haptic('light'); } } }),
-        UI.el('button', { class: 'btn btn-ghost btn-sm', style: { alignSelf: 'center', opacity: '0.75' }, onclick: finish }, t('intro.skip')),
+        // first-run is forced (no skip) so new users actually see the app; a
+        // replay from Settings keeps the escape hatch.
+        forced ? null : UI.el('button', { class: 'btn btn-ghost btn-sm', style: { alignSelf: 'center', opacity: '0.75' }, onclick: finish }, t('intro.skip')),
       ]),
       dots(INTRO.length, introStep),
     ]);
@@ -127,7 +139,8 @@
           UI.el('div', { class: 'coach-eyebrow' }, t('tour.step', { n: currentStep + 1, total: total })),
           UI.el('div', { class: 'coach-title serif' }, t(step.t)),
         ]),
-        UI.el('button', { class: 'coach-close', 'aria-label': t('tour.skip'), onclick: finish }, UI.frag('<span style="display:inline-flex;width:16px;height:16px">' + Icons.get('x') + '</span>')),
+        // no close (X) on the forced first-run tour — only on optional replays
+        forced ? null : UI.el('button', { class: 'coach-close', 'aria-label': t('tour.skip'), onclick: finish }, UI.frag('<span style="display:inline-flex;width:16px;height:16px">' + Icons.get('x') + '</span>')),
       ]),
       UI.el('p', { class: 'coach-desc' }, t(step.d)),
       UI.el('div', { class: 'coach-nav' }, [
@@ -158,7 +171,7 @@
 
   function spotTarget(step) {
     if (step.t === 'tour.care_t') return '#lifelineBtn';
-    var MAIN = ['home', 'weather', 'patterns', 'checkin'];
+    var MAIN = ['home', 'weather', 'decompress', 'checkin'];
     if (step.id && MAIN.indexOf(step.id) !== -1) return '.tab[data-tab="' + step.id + '"]';
     return '#navorb';   // second-tier features live in the bloom orb
   }
@@ -195,16 +208,21 @@
 
   // ---- Public API ----------------------------------------------------------
 
-  // Replay (from the hub / settings): straight into the coached tour.
+  // Replay (from the hub / settings): straight into the coached tour. Optional,
+  // so it keeps its exits (skip + X).
   function start() {
+    forced = false;
     introStep = 0;
     if (Anchor.current !== 'home') Anchor.go('home');
     startCoach();
   }
 
-  // First run after onboarding: intro splash, then the coached tour.
+  // First run after a brand-new account is created and signed in for the first
+  // time: a FORCED intro splash → coached tour (no skip, no X), shown exactly
+  // once (gated by flags.tourSeen, which only a fresh account lacks).
   function maybeAutoShow() {
     if (Store.get('flags.tourSeen')) return false;
+    forced = true;
     Anchor.go('home');
     introStep = 0;
     renderIntro();
