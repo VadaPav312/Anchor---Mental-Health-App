@@ -40,12 +40,6 @@
       ]) : null,
     ]));
 
-    // ---- living header: a miniature garden that grows with you, tinted by
-    // today's inner weather. The centerpiece that makes Home feel alive. ----
-    if (window.Garden && Garden.miniScene) {
-      try { root.appendChild(Garden.miniScene({ height: 124 })); } catch (e) {}
-    }
-
     const grid = UI.el('div', { class: 'col gap4 stagger dash-grid' });
     root.appendChild(grid);
 

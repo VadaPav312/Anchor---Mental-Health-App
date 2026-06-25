@@ -2,7 +2,7 @@
 // combined.js — merges related features under one roof so the app feels
 // coherent instead of like a pile of separate screens.
 //
-//   Journey = Timeline · Weekly Review · Garden   (looking back / growth)
+//   Journey = Timeline · Weekly Review           (looking back / growth)
 //   Calm    = Wind-down · Grounding               (regulating, day or night)
 //
 // Each combined view renders ONE header + a segmented switcher, then delegates
@@ -60,7 +60,6 @@
       { value: 'progress', viewId: 'progress', label: () => t('prog.tab') },
       { value: 'timeline', viewId: 'timeline', label: () => t('tl.title') },
       { value: 'review',   viewId: 'review',   label: () => t('rev.tab') },
-      { value: 'garden',   viewId: 'garden',   label: () => t('nav.garden') },
     ],
   });
 

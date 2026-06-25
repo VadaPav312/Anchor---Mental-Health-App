@@ -104,7 +104,7 @@
   function hud(opts) {
     opts = opts || {};
     const p = progress();
-    return UI.el('div', { class: 'glass-card card-tight', onclick: () => Anchor.go('journey', { tab: 'garden' }) }, [
+    return UI.el('div', { class: 'glass-card card-tight', onclick: () => Anchor.go('journey', { tab: 'progress' }) }, [
       UI.el('div', { class: 'row between', style: { alignItems: 'center' } }, [
         UI.el('div', { class: 'row gap3', style: { alignItems: 'center' } }, [
           UI.el('div', { class: 'xp-badge' }, t('gam.lvlShort', { n: p.level })),

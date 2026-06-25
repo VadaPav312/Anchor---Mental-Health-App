@@ -57,7 +57,7 @@ never diagnoses — and real human help is always one tap (and one long-press) a
 
 ### Journey (merged) — looking back
 - **AI Progress (Weekly / Monthly / Yearly)** — aggregates your data and the live AI reflects your trend, a real win, and one focus.
-- **Timeline** · **Weekly Review** · **Garden** (a one-of-a-kind, *animated* growth scene + milestones that grows as you do).
+- **Timeline** · **Weekly Review**
 
 ### Throughout
 - **Gamification** — 16 imaginative levels (First light → Boundless), XP for showing up, and a celebratory level-up (modal + confetti + a multi-layered "success" haptic).
@@ -121,7 +121,7 @@ ios/
 
 **How features compose:** each screen self-registers a view (`Anchor.register`)
 and is painted into `#view`. `combined.js` hosts several existing views under one
-roof (Journey = Progress · Timeline · Review · Garden; Calm = Wind-down · Grounding
+roof (Journey = Progress · Timeline · Review; Calm = Wind-down · Grounding
 · Sounds) so the app reads as coherent rather than a pile of screens.
 
 ---

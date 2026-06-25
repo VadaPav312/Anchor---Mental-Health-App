@@ -32,7 +32,6 @@
     { id: 'experiments', t: 'tour.experiments_t', d: 'tour.experiments_d' },
     { id: 'values',      t: 'tour.values_t',      d: 'tour.values_d'      },
     { id: 'journey',     t: 'tour.journey_t',     d: 'tour.journey_d'     },
-    { id: 'garden',      t: 'tour.garden_t',      d: 'tour.garden_d'      },
     { id: 'hub',         t: 'hub.title',          d: 'intro.hubDesc'      },
     { id: 'home',        t: 'tour.care_t',        d: 'tour.care_d'        },
   ];
@@ -41,7 +40,7 @@
     home: 'home', weather: 'weather', checkin: 'checkin', patterns: 'patterns',
     journal: 'journal', mirror: 'mirror', sleep: 'sleep', energy: 'energy', calm: 'leaf',
     toolkit: 'leaf', sounds: 'sound', decompress: 'decompress',
-    experiments: 'lab', values: 'compass', journey: 'trend', garden: 'spark', hub: 'grid',
+    experiments: 'lab', values: 'compass', journey: 'trend', hub: 'grid',
   };
 
   let currentStep = 0;

@@ -254,12 +254,12 @@
   }
 
   // 7 — the 30-second living preview. Instead of telling new users (and judges)
-  // what Anchor becomes, we SHOW it: an auto-playing montage of the garden
-  // growing, the inner-weather landscape, a real cause→effect insight surfacing,
-  // and a celebratory level-up. Everything here reuses the same components the
-  // live app paints, so this is a faithful taste — Anchor, alive, in ten seconds.
+  // what Anchor becomes, we SHOW it: an auto-playing montage of the inner-weather
+  // landscape, a real cause→effect insight surfacing, and a celebratory level-up.
+  // Everything here reuses the same components the live app paints, so this is a
+  // faithful taste — Anchor, alive, in ten seconds.
   function preview() {
-    const SCENES = [sceneGarden, sceneWeather, sceneInsight, sceneLevel];
+    const SCENES = [sceneWeather, sceneInsight, sceneLevel];
     let idx = 0;
     const stage = UI.el('div', { class: 'onb-prev-stage' });
     const bars = SCENES.map(() => UI.el('div', { class: 'opb' }, [UI.el('i')]));
@@ -298,13 +298,6 @@
   }
 
   // ---- preview scenes (each returns { el, caption, onShow? }) --------------
-  function sceneGarden() {
-    const el = (window.Garden && Garden.miniScene)
-      ? Garden.miniScene({ height: 210 })
-      : UI.el('div', { style: { height: '210px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' } }, '🌱');
-    el.style.pointerEvents = 'none';
-    return { el, caption: t('onb.prevGarden') };
-  }
   function sceneWeather() {
     const moods = ['☀️', '🌤️', '☁️', '🌧️', '⛈️', '🌫️'];
     const emoji = UI.el('div', { class: 'onb-prev-wx' }, moods[0]);

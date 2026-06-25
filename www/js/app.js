@@ -95,8 +95,8 @@
 
   // ---- navigation: bottom bar (4 main tabs) + a center "bloom" orb ---------
   // The bar keeps the primary features (2 on each side). The raised center orb
-  // opens a radial bloom of every SECONDARY feature (the plant garden, journal,
-  // toolkit, …). Only the focused item is labelled, so labels never overlap; on
+  // opens a radial bloom of every SECONDARY feature (the journal, toolkit, …).
+  // Only the focused item is labelled, so labels never overlap; on
   // web a scroll-wheel rolls the focus around the ring (Minecraft-hotbar style).
   // Main bar: Home · Weather · [orb] · Wind-down · Check-in.
   // (Patterns moved into Journey in the bloom; the Decompression Chamber is back
