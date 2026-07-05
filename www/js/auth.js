@@ -53,6 +53,51 @@
   function host() { return document.getElementById('view'); }
   const E = UI.el;
 
+  // ---- passcode security ---------------------------------------------------
+  // The 4-digit passcode is NEVER stored in plaintext. We derive a PBKDF2-
+  // SHA256 hash with a per-account random salt; only {pinHash,pinSalt,pinAlgo}
+  // are persisted. Verification re-derives and compares in constant time. If
+  // Web Crypto is unavailable we fall back to plaintext (rare; keeps the gate
+  // working), and any legacy plaintext pin is upgraded to a hash on next login.
+  const PIN_ITER = 210000;
+  function _b64(bytes) { let s = ''; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s); }
+  function _unb64(str) { const bin = atob(str); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
+  function _hasSubtle() { return !!(window.crypto && crypto.subtle && crypto.getRandomValues); }
+  async function derivePin(pin, saltB64) {
+    const enc = new TextEncoder();
+    const salt = saltB64 ? _unb64(saltB64) : crypto.getRandomValues(new Uint8Array(16));
+    const km = await crypto.subtle.importKey('raw', enc.encode(String(pin)), { name: 'PBKDF2' }, false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: PIN_ITER, hash: 'SHA-256' }, km, 256);
+    return { hash: _b64(new Uint8Array(bits)), salt: _b64(salt) };
+  }
+  function _safeEqual(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+    let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0;
+  }
+  // Build the account fields for a (possibly empty) passcode.
+  async function makePasscode(pin) {
+    pin = pin || '';
+    if (!pin) return { pin: '', pinHash: '', pinSalt: '', pinAlgo: '' };
+    if (_hasSubtle()) {
+      try { const d = await derivePin(pin); return { pin: '', pinHash: d.hash, pinSalt: d.salt, pinAlgo: 'pbkdf2-sha256-' + PIN_ITER }; } catch {}
+    }
+    return { pin, pinHash: '', pinSalt: '', pinAlgo: '' };   // fallback: no WebCrypto
+  }
+  function hasPasscode(acct) { return !!(acct && (acct.pinHash || (acct.pin && acct.pin.length))); }
+  // Verify an entered passcode; transparently upgrades a legacy plaintext pin.
+  async function verifyPasscode(acct, input) {
+    input = input || '';
+    if (acct.pinHash && acct.pinSalt) {
+      try { const d = await derivePin(input, acct.pinSalt); return _safeEqual(d.hash, acct.pinHash); } catch { return false; }
+    }
+    if (acct.pin != null && acct.pin !== '') {
+      const ok = input === acct.pin;
+      if (ok) { try { const f = await makePasscode(input); Store.profile.update({ account: Object.assign({}, acct, f) }); } catch {} }
+      return ok;
+    }
+    return true;   // no passcode set
+  }
+
   function frame(children) {
     const h = host(); UI.clear(h);
     h.appendChild(E('div', { class: 'rise', style: {
@@ -83,10 +128,12 @@
         UI.field(t('auth.pwLabel'), pin, t('auth.pwHint')),
       ]),
       UI.el('div', { style: { height: '16px' } }),
-      UI.btn(t('auth.createCta'), { class: 'btn-primary btn-lg', block: true, onClick: () => {
+      UI.btn(t('auth.createCta'), { class: 'btn-primary btn-lg', block: true, onClick: async (e) => {
         const nm = (name.value || '').trim();
         if (!nm) { name.focus(); UI.haptic('error'); return; }
-        Store.profile.update({ account: { name: nm, email: (email.value || '').trim(), pin: (pin.value || '') } });
+        const btn = e && e.currentTarget; if (btn) btn.disabled = true;
+        const pinFields = await makePasscode(pin.value || '');
+        Store.profile.update({ account: Object.assign({ name: nm, email: (email.value || '').trim() }, pinFields) });
         Store.profile.update({ name: nm });
         setSignedIn(true); UI.haptic('success'); finish();
       } }),
@@ -101,11 +148,18 @@
   function renderSignIn() {
     const acct = account();
     if (!acct) return render('signup');
-    const hasPw = !!(acct.pin && acct.pin.length);
+    const hasPw = hasPasscode(acct);
     const pin = E('input', { class: 'input', type: 'password', autocomplete: 'current-password', maxlength: 64, placeholder: t('auth.pwEnter'), oninput: () => UI.hapticTick() });
     const err = E('div', { class: 'tiny tac', style: { color: 'var(--bad)', minHeight: '16px', marginTop: '8px' } });
-    function attempt() {
-      if (hasPw && (pin.value || '') !== acct.pin) { err.textContent = t('auth.pwWrong'); UI.haptic('error'); pin.value = ''; return; }
+    let _busy = false;
+    async function attempt() {
+      if (_busy) return;
+      if (hasPw) {
+        _busy = true;
+        const ok = await verifyPasscode(acct, pin.value || '');
+        _busy = false;
+        if (!ok) { err.textContent = t('auth.pwWrong'); UI.haptic('error'); pin.value = ''; return; }
+      }
       setSignedIn(true); UI.haptic('success'); finish();
     }
     frame([

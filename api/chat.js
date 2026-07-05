@@ -142,6 +142,11 @@ module.exports = async function handler(req, res) {
   }
   setSecurityHeaders(res, origin);
 
+  // Content-Type must be JSON. Blocks "simple" form/navigation CSRF posts (which
+  // cannot set an application/json content-type) as an extra layer beyond Origin.
+  const ctype = String(req.headers['content-type'] || '').toLowerCase();
+  if (!ctype.includes('application/json')) return fail(res, 415, 'unsupported media type');
+
   // Secret must exist (configured in Vercel env, never in the repo).
   const apiKey = process.env.CEREBRAS_API_KEY;
   if (!apiKey) return fail(res, 503, 'AI is not configured on the server');

@@ -24,9 +24,14 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- App Transport Security: enforce HTTPS + modern TLS for ALL internet
+	     traffic. We do NOT allow arbitrary loads. Local-network access (the
+	     optional bedside monitor) is permitted without weakening remote TLS. -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
