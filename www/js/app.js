@@ -459,7 +459,9 @@
     Store.on('change', () => applyWeatherTint());
     Store.on('settings', () => applyTheme());
 
-    gate();
+    // First ever launch → play the cinematic intro simulation, then gate.
+    if (window.Intro && Intro.shouldShow()) { hideChrome(true); Intro.play(gate); }
+    else gate();
     hideLoader();
   }
 

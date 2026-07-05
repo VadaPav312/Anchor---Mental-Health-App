@@ -156,16 +156,44 @@
   // previous user's name — important on shared devices. We exchange the access
   // token for basic profile info (name/email) via the userinfo endpoint.
   let _tokenClient = null;
+  // Multicolor Google "G" mark (official geometry), sized for a button.
+  const GOOGLE_LOGO = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">' +
+    '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>' +
+    '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>' +
+    '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>' +
+    '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>' +
+    '</svg>';
+  // A branded "Continue with Google" button: white logo chip + label. Returns the
+  // <button> with a ._label span so callers can flip the text without wiping the logo.
+  function googleButton(label, onClick) {
+    const labelEl = E('span', {}, label);
+    const b = E('button', { class: 'btn btn-ghost btn-block google-btn', onclick: onClick }, [
+      UI.frag('<span class="g-logo">' + GOOGLE_LOGO + '</span>'),
+      labelEl,
+    ]);
+    b._label = labelEl;
+    return b;
+  }
   async function onGoogleToken(resp) {
-    if (!resp || !resp.access_token) return;
+    // Google popup returned an error (cancelled, popup blocked, or — most often on
+    // a fresh deploy — the origin isn't in the OAuth client's Authorized origins).
+    if (resp && resp.error) {
+      UI.toast(t('google.failed'), 'bad');
+      console.warn('Google token error:', resp.error, resp.error_description || '');
+      return;
+    }
+    if (!resp || !resp.access_token) { UI.toast(t('google.failed'), 'bad'); return; }
+    // Google has already authenticated the user at this point, so sign-in MUST
+    // succeed. The profile lookup is best-effort: if it fails (network/CSP), we
+    // still sign in with a fallback name instead of bouncing back to the login
+    // screen — that silent bounce was the reported bug.
+    let nm = 'You', email = '';
     try {
       const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + resp.access_token } });
-      if (!r.ok) throw new Error('userinfo');
-      const p = await r.json();
-      const nm = p.name || p.given_name || 'You';
-      Store.profile.update({ account: { name: nm, email: p.email || '', pin: '', google: true }, name: nm });
-      setSignedIn(true); UI.haptic('success'); finish();
-    } catch (e) { UI.toast(t('google.failed'), 'bad'); }
+      if (r.ok) { const p = await r.json(); nm = p.name || p.given_name || nm; email = p.email || ''; }
+    } catch (e) { console.warn('userinfo lookup failed; signing in anyway', e); }
+    Store.profile.update({ account: { name: nm, email, pin: '', google: true }, name: nm });
+    setSignedIn(true); UI.haptic('success'); finish();
   }
   function isNative() { return !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()); }
   function socialPlugin() { return window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.SocialLogin; }
@@ -174,7 +202,9 @@
   async function nativeGoogle(btn) {
     const SL = socialPlugin();
     if (!SL || !(window.CONFIG && CONFIG.googleIOSClientId)) { UI.toast(t('google.failed'), 'bad'); return; }
-    const old = btn && btn.textContent; if (btn) { btn.disabled = true; btn.textContent = t('google.signingIn'); }
+    const labelNode = btn && (btn._label || btn);
+    const old = labelNode && labelNode.textContent;
+    if (btn) { btn.disabled = true; if (labelNode) labelNode.textContent = t('google.signingIn'); }
     try {
       await SL.initialize({ google: { iOSClientId: CONFIG.googleIOSClientId, webClientId: CONFIG.firebaseClientId } });
       const r = await SL.login({ provider: 'google', options: { scopes: ['email', 'profile'] } });
@@ -182,7 +212,7 @@
       const nm = p.name || p.displayName || p.givenName || p.given_name || 'You';
       Store.profile.update({ account: { name: nm, email: p.email || '', pin: '', google: true }, name: nm });
       setSignedIn(true); UI.haptic('success'); finish();
-    } catch (e) { UI.toast(t('google.failed'), 'bad'); if (btn) { btn.disabled = false; btn.textContent = old; } }
+    } catch (e) { UI.toast(t('google.failed'), 'bad'); if (btn) { btn.disabled = false; if (labelNode) labelNode.textContent = old; } }
   }
 
   function googleSlot() {
@@ -191,7 +221,7 @@
     if (isNative()) {
       // native build: only show the button if the iOS client id + plugin exist
       if (!socialPlugin() || !CONFIG.googleIOSClientId) return c;
-      const btn = UI.btn(t('google.signIn'), { class: 'btn-ghost btn-block', icon: 'user', onClick: () => nativeGoogle(btn) });
+      const btn = googleButton(t('google.signIn'), () => nativeGoogle(btn));
       c.appendChild(btn);
       return c;
     }
@@ -200,8 +230,11 @@
     // previous user whenever a Google session exists in the browser, which leaks
     // that person on a shared device. The token flow below forces account choice.
     if (!CONFIG.firebaseClientId) return c;
-    const gbtn = UI.btn(t('google.signIn'), { class: 'btn-ghost btn-block', icon: 'user', disabled: true,
-      onClick: () => { try { _tokenClient && _tokenClient.requestAccessToken(); } catch (e) { UI.toast(t('google.failed'), 'bad'); } } });
+    const gbtn = googleButton(t('google.signIn'), () => {
+      if (!_tokenClient) { UI.toast(t('google.failed'), 'bad'); return; }
+      try { _tokenClient.requestAccessToken(); } catch (e) { UI.toast(t('google.failed'), 'bad'); }
+    });
+    gbtn.disabled = true;
     c.appendChild(gbtn);
     // Prepare the token client ahead of the click so requestAccessToken() runs
     // directly inside the user gesture (avoids popup blockers).
@@ -212,10 +245,16 @@
           scope: 'openid email profile',
           prompt: 'select_account',
           callback: onGoogleToken,
+          // Surfaces popup-closed / origin-not-allowed instead of failing silently
+          // (which looked like "it just sends me back to the login page").
+          error_callback: (err) => {
+            console.warn('Google sign-in error:', err && (err.type || err.message));
+            UI.toast(t('google.failed'), 'bad');
+          },
         });
         gbtn.disabled = false;
-      } catch (e) { /* unauthorized origin / init failed — leave disabled */ }
-    }).catch(() => {});
+      } catch (e) { console.warn('GIS init failed (origin not authorized?)', e); }
+    }).catch(() => { console.warn('GIS script failed to load'); });
     return c;
   }
   function orRow() {

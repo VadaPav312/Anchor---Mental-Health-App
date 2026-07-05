@@ -21,6 +21,17 @@ I18N.register('en', {
     days: 'days', day: 'day', weeks: 'weeks', hrs: 'h', min: 'min',
   },
 
+  intro: {
+    skip: 'Skip',
+    s1Title: 'Your inner weather',
+    s1Sub: 'Every check-in becomes a forecast of how you actually feel.',
+    s2Title: 'Patterns, connected',
+    s2Sub: 'Anchor links your sleep, mood and energy — and shows you why.',
+    s3Title: 'Entirely yours',
+    s3Sub: 'Everything stays on your device. Private by design.',
+    cta: 'Get started',
+  },
+
   nav: {
     home: 'Home', sleep: 'Sleep', patterns: 'Patterns', weather: 'Inner Weather',
     experiments: 'Lab', decompress: 'Wind-down', values: 'Compass',
