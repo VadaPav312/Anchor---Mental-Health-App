@@ -40,7 +40,10 @@
     ]);
     const skip = E('button', { class: 'intro-skip', 'aria-label': t('sim.skip'), onclick: (e) => { e.stopPropagation(); UI.haptic('light'); finish(done); } }, t('sim.skip'));
 
-    const root = E('div', { id: 'intro-sim', class: 'intro-sim' }, [
+    // Everything lives inside a phone-width .intro-frame so that on a wide
+    // desktop screen it reads like the phone version (a centered column) rather
+    // than sprawling across the whole display. .intro-sim is just the backdrop.
+    const frame = E('div', { class: 'intro-frame' }, [
       E('div', { class: 'intro-orb intro-orb-a' }),
       E('div', { class: 'intro-orb intro-orb-b' }),
       E('div', { class: 'intro-orb intro-orb-c' }),
@@ -50,6 +53,7 @@
       hint,
       dotsRow,
     ]);
+    const root = E('div', { id: 'intro-sim', class: 'intro-sim' }, [frame]);
     document.body.appendChild(root);
 
     // ---- scene builders ----------------------------------------------------
