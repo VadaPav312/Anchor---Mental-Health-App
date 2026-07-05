@@ -45,12 +45,12 @@
 			<array>
 				<!-- Native Google sign-in: REPLACE with your REVERSED iOS client id,
 				     e.g. com.googleusercontent.apps.627695329462-abcd1234 -->
-				<string>com.googleusercontent.apps.96377719286-kh4grmomh50nhlt3eirc0r0gqp73s6q5</string>
+				<string>com.googleusercontent.apps.627695329462-t142vqaambtmekorfrbon4k016kifgsf</string>
 			</array>
 		</dict>
 	</array>
 	<key>GIDClientID</key>
-	<string>96377719286-kh4grmomh50nhlt3eirc0r0gqp73s6q5.apps.googleusercontent.com</string>
+	<string>627695329462-t142vqaambtmekorfrbon4k016kifgsf.apps.googleusercontent.com</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
