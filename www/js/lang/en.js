@@ -21,8 +21,9 @@ I18N.register('en', {
     days: 'days', day: 'day', weeks: 'weeks', hrs: 'h', min: 'min',
   },
 
-  intro: {
+  sim: {
     skip: 'Skip',
+    tapHint: 'Tap to continue',
     s1Title: 'Your inner weather',
     s1Sub: 'Every check-in becomes a forecast of how you actually feel.',
     s2Title: 'Patterns, connected',

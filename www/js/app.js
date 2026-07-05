@@ -459,9 +459,7 @@
     Store.on('change', () => applyWeatherTint());
     Store.on('settings', () => applyTheme());
 
-    // First ever launch → play the cinematic intro simulation, then gate.
-    if (window.Intro && Intro.shouldShow()) { hideChrome(true); Intro.play(gate); }
-    else gate();
+    gate();
     hideLoader();
   }
 
@@ -486,6 +484,12 @@
     }
   }
   function afterAuth() {
+    // Right after sign-in (first time only) → play the cinematic intro, then
+    // continue into the privacy gate / onboarding.
+    if (window.Intro && Intro.shouldShow()) { hideChrome(true); Intro.play(afterIntro); return; }
+    afterIntro();
+  }
+  function afterIntro() {
     if (!Store.get('settings.privacyAccepted')) { hideChrome(true); showPrivacy(afterPrivacy); return; }
     afterPrivacy();
   }

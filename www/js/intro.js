@@ -1,11 +1,11 @@
 // ===========================================================================
-// intro.js — the first-launch "simulation": a short, glossy cinematic that
-// introduces Anchor before the sign-in gate. Auto-plays a handful of scenes
-// (brand → inner weather → connected patterns → private-by-design), each on the
-// user's chosen accent palette so it matches the app's color look. Fully
+// intro.js — the "simulation": a glossy cinematic that introduces Anchor right
+// after the user signs in (first time only). The reader taps to move through the
+// scenes (brand → inner weather → connected patterns → private-by-design), each
+// on the user's chosen accent palette so it matches the app's color look. Fully
 // skippable, shown once (Store 'settings.introSeen').
 //
-//   Intro.shouldShow()  -> bool   (first ever launch, not yet onboarded)
+//   Intro.shouldShow()  -> bool   (first launch, not yet seen, not onboarded)
 //   Intro.play(done)    -> plays the cinematic, then calls done()
 // ===========================================================================
 (function () {
@@ -34,7 +34,11 @@
 
     const stage = E('div', { class: 'intro-stage' });
     const dotsRow = E('div', { class: 'intro-dots' });
-    const skip = E('button', { class: 'intro-skip', 'aria-label': t('intro.skip'), onclick: () => { UI.haptic('light'); finish(done); } }, t('intro.skip'));
+    const hint = E('div', { class: 'intro-hint' }, [
+      E('span', {}, t('sim.tapHint')),
+      UI.frag('<span class="intro-hint-chev">' + Icons.get('chevron') + '</span>'),
+    ]);
+    const skip = E('button', { class: 'intro-skip', 'aria-label': t('sim.skip'), onclick: (e) => { e.stopPropagation(); UI.haptic('light'); finish(done); } }, t('sim.skip'));
 
     const root = E('div', { id: 'intro-sim', class: 'intro-sim' }, [
       E('div', { class: 'intro-orb intro-orb-a' }),
@@ -43,11 +47,12 @@
       E('div', { class: 'intro-grain' }),
       skip,
       stage,
+      hint,
       dotsRow,
     ]);
     document.body.appendChild(root);
 
-    // ---- scene builders (each returns a mounted-ready node) ----------------
+    // ---- scene builders ----------------------------------------------------
     function sceneBrand() {
       return E('div', { class: 'intro-scene' }, [
         E('div', { class: 'intro-mark brand-mark' }),
@@ -58,13 +63,12 @@
     function sceneWeather() {
       const moods = ['☀️', '🌤️', '☁️', '🌧️', '⛈️', '🌫️', '🌈'];
       const wx = E('div', { class: 'intro-wx' }, moods[0]);
-      // cycle the emoji while this scene is on screen (timer cleared on advance)
       let k = 0;
       _timers.push(setInterval(() => { k = (k + 1) % moods.length; wx.textContent = moods[k]; }, 620));
       return E('div', { class: 'intro-scene' }, [
         E('div', { class: 'intro-wx-ring' }, [wx]),
-        E('h2', { class: 'serif intro-h' }, t('intro.s1Title')),
-        E('p', { class: 'soft intro-p' }, t('intro.s1Sub')),
+        E('h2', { class: 'serif intro-h' }, t('sim.s1Title')),
+        E('p', { class: 'soft intro-p' }, t('sim.s1Sub')),
       ]);
     }
     function sceneInsight() {
@@ -83,43 +87,43 @@
       return E('div', { class: 'intro-scene' }, [
         E('div', { class: 'eyebrow intro-eye' }, '✦ ' + t('dash.topInsight')),
         thread,
-        E('h2', { class: 'serif intro-h', style: { marginTop: '18px' } }, t('intro.s2Title')),
-        E('p', { class: 'soft intro-p' }, t('intro.s2Sub')),
+        E('h2', { class: 'serif intro-h', style: { marginTop: '18px' } }, t('sim.s2Title')),
+        E('p', { class: 'soft intro-p' }, t('sim.s2Sub')),
       ]);
     }
     function scenePrivate() {
       return E('div', { class: 'intro-scene' }, [
         E('div', { class: 'intro-lock' }, '🔒'),
-        E('h2', { class: 'serif intro-h' }, t('intro.s3Title')),
-        E('p', { class: 'soft intro-p' }, t('intro.s3Sub')),
-        UI.btn(t('intro.cta'), { class: 'btn-primary btn-lg', block: true, onClick: () => finish(done) }),
+        E('h2', { class: 'serif intro-h' }, t('sim.s3Title')),
+        E('p', { class: 'soft intro-p' }, t('sim.s3Sub')),
+        UI.btn(t('sim.cta'), { class: 'btn-primary btn-lg', block: true, onClick: (e) => { e && e.stopPropagation && e.stopPropagation(); finish(done); } }),
       ]);
     }
 
-    const SCENES = [
-      { ms: 2800, build: sceneBrand },
-      { ms: 3000, build: sceneWeather },
-      { ms: 3200, build: sceneInsight },
-      { ms: 0,    build: scenePrivate },   // last scene holds on its CTA
-    ];
+    const SCENES = [sceneBrand, sceneWeather, sceneInsight, scenePrivate];
     const dots = SCENES.map(() => E('span', { class: 'intro-dot' }));
     dots.forEach(d => dotsRow.appendChild(d));
 
     let i = -1;
     function show(k) {
-      clearTimers();                       // stop the previous scene's timers
+      clearTimers();                       // stop the previous scene's animations
       i = k;
+      const isLast = k === SCENES.length - 1;
       UI.clear(stage);
-      const node = SCENES[k].build();
+      const node = SCENES[k]();
       node.classList.add('intro-enter');
       stage.appendChild(node);
       dots.forEach((d, n) => { d.classList.toggle('done', n < k); d.classList.toggle('active', n === k); });
+      hint.classList.toggle('hidden', isLast);   // last scene uses its CTA instead
       UI.haptic('light');
-      if (SCENES[k].ms > 0 && k < SCENES.length - 1) _timers.push(setTimeout(() => show(k + 1), SCENES[k].ms));
     }
 
-    // tap anywhere on the stage to jump forward (until the final CTA scene)
-    stage.addEventListener('click', () => { if (i < SCENES.length - 1) show(i + 1); });
+    function advance() { if (i < SCENES.length - 1) show(i + 1); }
+
+    // The reader clicks ahead. Tapping the stage or the hint advances; the Skip
+    // button and the final CTA stop propagation so they don't also advance.
+    stage.addEventListener('click', advance);
+    hint.addEventListener('click', advance);
 
     show(0);
   }
