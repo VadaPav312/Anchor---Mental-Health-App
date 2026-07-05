@@ -234,7 +234,7 @@ I18N.register('en', {
     lastNights: 'Recent nights', trend7: '7-night trend',
     envScore: 'Environment score',
     detail: 'Night detail',
-    bedtime: 'Bedtime', waketime: 'Woke', awakenings: 'Awakenings',
+    bedtime: 'Bedtime', waketime: 'Woke', awakenings: 'Awakenings', date: 'Night of',
     noData: 'No nights recorded yet',
     setupHint: 'Tap “Add a night manually” to start your sleep journal.',
     addManual: 'Add a night manually',

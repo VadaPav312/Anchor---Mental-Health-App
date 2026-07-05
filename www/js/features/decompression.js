@@ -586,10 +586,11 @@
       );
     }
 
-    return UI.card(children, {
-      class: 'mt1',
-      style: { borderColor: 'rgba(124,156,255,0.3)', background: 'rgba(124,156,255,0.06)' },
-    });
+    // UI.card ignores opts.style, so apply the tint directly to the returned node.
+    const summaryCard = UI.card(children, { class: 'mt1' });
+    summaryCard.style.borderColor = 'rgba(124,156,255,0.3)';
+    summaryCard.style.background = 'rgba(124,156,255,0.06)';
+    return summaryCard;
   }
 
   // ---- SCREEN: History -------------------------------------------------------

@@ -338,7 +338,7 @@
     });
 
     const body = UI.el('div', { class: 'col gap4', style: { padding: '4px 0 24px' } }, [
-      UI.field(t('sleep.bedtime'), dateInput),
+      UI.field(t('sleep.date'), dateInput),
 
       sliderField(
         t('sleep.duration'), 'durationMin', 60, 720, 15, durDisplay
@@ -422,6 +422,7 @@
             });
 
             UI.toast(t('app.saved'), 'good');
+            if (sheet && sheet.close) sheet.close();   // auto-dismiss the popup
             Anchor.refresh();
           } catch (e) {
             console.warn('sleep add failed', e);
@@ -431,7 +432,7 @@
       }),
     ]);
 
-    UI.sheet({ title: t('sleep.addManual'), body });
+    const sheet = UI.sheet({ title: t('sleep.addManual'), body });
   }
 
   // ---- render --------------------------------------------------------------

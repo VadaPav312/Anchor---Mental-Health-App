@@ -268,13 +268,25 @@
     // 4. TAGS
     // =========================================================================
     const tags = tagList();
-    const tagChips = UI.chips(tags, selectedTags, function (newSelected) {
-      selectedTags = newSelected;
-    });
+    // Even, uniform grid of tag boxes (instead of variable-width inline chips) so
+    // "What's in the mix?" reads as a tidy set of equal tiles.
+    const tagGrid = E('div', { class: 'chip-grid' }, tags.map(function (label) {
+      const box = E('button', {
+        type: 'button',
+        class: 'chip chip-even',
+        onclick: function () {
+          UI.haptic('light');
+          const i = selectedTags.indexOf(label);
+          if (i >= 0) { selectedTags.splice(i, 1); box.classList.remove('active'); }
+          else { selectedTags.push(label); box.classList.add('active'); }
+        },
+      }, label);
+      return box;
+    }));
 
     const tagsCard = UI.card([
       E('div', { class: 'eyebrow', style: { marginBottom: '10px' } }, t('chk.tags')),
-      tagChips,
+      tagGrid,
     ]);
 
     form.appendChild(tagsCard);

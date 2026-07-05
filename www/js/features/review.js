@@ -397,7 +397,7 @@
         row1.appendChild(UI.tile(
           valenceName(stats.moodHigh),
           t('rev.moodRange', { low: valenceName(stats.moodLow), high: valenceName(stats.moodHigh) }),
-          t('rev.moodRange', { low: valenceName(stats.moodLow), high: valenceName(stats.moodHigh) }),
+          null,
           {}
         ));
       }
@@ -466,7 +466,7 @@
             block: true,
             onClick: () => {
               UI.haptic('light');
-              Native.share({ text: shareText });
+              Native.share(shareText);
             },
           })
         );

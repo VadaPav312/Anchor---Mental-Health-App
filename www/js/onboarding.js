@@ -144,7 +144,9 @@
     const grid = UI.el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--s2)' } });
     function syncDraft() {
       draft.values = VALUE_SUGGESTIONS.filter(x => selected.has(x.id)).map(x => ({ id: x.id, name: x.name, why: '', target: 4 }))
-        .concat(draft.values.filter(v => String(v.id).startsWith('c')));
+        // keep user-typed customs — matched by their unambiguous 'custom-' prefix,
+        // NOT startsWith('c') which also matched suggestions like calm/creativity.
+        .concat(draft.values.filter(v => String(v.id).startsWith('custom-')));
     }
     function box(v, custom) {
       const b = UI.el('button', { class: 'onb-val' + (selected.has(v.id) ? ' active' : ''), onclick: () => {
@@ -161,7 +163,7 @@
     VALUE_SUGGESTIONS.forEach(v => grid.appendChild(box(v)));
     const custom = UI.el('input', { class: 'input', placeholder: t('onb.valuesCustom'), style: { marginTop: '12px' },
       onkeydown: e => { if (e.key === 'Enter' && e.target.value.trim()) {
-        const nm = e.target.value.trim(); const id = 'c' + Date.now();
+        const nm = e.target.value.trim(); const id = 'custom-' + Date.now();
         const v = { id, name: nm, emoji: '✨' }; selected.add(id);
         draft.values.push({ id, name: nm, why: '', target: 4 });
         const b = box(v, true); b.classList.add('active'); grid.appendChild(b); e.target.value = '';

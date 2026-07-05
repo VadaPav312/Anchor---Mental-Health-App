@@ -51,7 +51,7 @@
       },
       activity: [],                   // [{ id, ts, date, kind:'move'|'rest', level(1-3), label }]
       values: [],
-      sleep: [], moods: [], journal: [], energy: [], activity: [],
+      sleep: [], moods: [], journal: [], energy: [],
       decompress: [], experiments: [], valuesChecks: [],
       insights: [], investigations: [], profileWins: [],
       gamification: { streak: 0, lastActive: null, longest: 0, grace: 0 },
@@ -164,7 +164,19 @@
 
     // ---- import / export / reset ----
     export() { return JSON.stringify(state, null, 2); },
-    import(json) { try { const obj = JSON.parse(json); state = Object.assign(blank(), obj); Store.state = state; touch('change'); return true; } catch { return false; } },
+    import(json) {
+      try {
+        const obj = JSON.parse(json);
+        state = Object.assign(blank(), obj);
+        // Re-merge nested settings defaults exactly like load(), so a partial or
+        // older export can't leave settings.session/reminders undefined (which
+        // would break Auth.persistSession() / Native.syncReminders()).
+        state.settings = Object.assign(blank().settings, state.settings || {});
+        state.settings.session = Object.assign(blank().settings.session, state.settings.session || {});
+        state.settings.reminders = Object.assign(blank().settings.reminders, state.settings.reminders || {});
+        Store.state = state; touch('change'); return true;
+      } catch { return false; }
+    },
     reset() { state = blank(); Store.state = state; try { localStorage.removeItem(KEY); } catch {} touch('change'); },
   };
 

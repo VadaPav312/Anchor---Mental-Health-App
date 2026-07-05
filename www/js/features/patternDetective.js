@@ -253,7 +253,7 @@
         UI.el('span', {}, t('dash.topInsight')),
         // Lag chip
         UI.el('span', { class: 'chip', style: { marginLeft: 'auto', fontSize: '0.72rem', padding: '2px 8px' } }, [
-          UI.el('span', { class: 'tiny soft' }, t('pat.lag') || t('pat.confidence').slice(0, 0) || ''),
+          UI.el('span', { class: 'tiny soft' }, t('pat.lag') || ''),
           lagStr,
         ]),
       ]),

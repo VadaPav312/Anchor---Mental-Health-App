@@ -568,6 +568,7 @@ protocolSteps should have 3-5 practical, specific steps for how to do the experi
         try {
           const design = await designProtocol(hyp, metric, total);
           design.title = design.title || title;
+          if (s && s.close) s.close();   // dismiss the sheet before the page refreshes
           onStart(design);
         } catch (e) {
           status.textContent = e.message || t('app.retry');

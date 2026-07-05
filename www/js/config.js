@@ -8,7 +8,10 @@ window.CONFIG = {
   // app there is no same-origin server, so set this to your deployed origin,
   // e.g. 'https://your-app.vercel.app/api/chat'. The real Cerebras key lives in
   // that server's CEREBRAS_API_KEY env var and is never shipped to the device.
-  aiProxyUrl: 'anchor-lac.vercel.app/api/chat',
+  // MUST be an absolute https:// URL (a bare host is treated as a relative path
+  // by the browser and silently 404s — that was the old "couldn't reach the AI"
+  // bug). On the web build the app also falls back to the same-origin /api/chat.
+  aiProxyUrl: 'https://anchor-lac.vercel.app/api/chat',
 
   // Google WEB client id (Firebase) — used by the web "Sign in with Google" button.
   firebaseClientId: '96377719286-nrt9cit2cemlvp5q6sqjse65k9n8d6lv.apps.googleusercontent.com',

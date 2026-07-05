@@ -187,7 +187,7 @@
         UI.frag(UI.ring(s.score, 100, { size: 64, stroke: 7, label: '', color: ['var(--a3)', 'var(--a1)'] })),
         UI.el('div', {}, [
           UI.el('div', { class: 'b' }, UI.fmt.dur(s.durationMin)),
-          UI.el('div', { class: 'tiny soft' }, UI.fmt.temp(s.tempF) + ' · ' + (s.noiseDb != null ? Math.round(s.noiseDb) + 'dB' : '')),
+          UI.el('div', { class: 'tiny soft' }, UI.fmt.temp(s.tempF) + (s.noiseDb != null ? ' · ' + Math.round(s.noiseDb) + 'dB' : '')),
         ]),
       ]),
     ]);

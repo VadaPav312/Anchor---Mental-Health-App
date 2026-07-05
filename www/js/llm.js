@@ -38,16 +38,34 @@
     if (window.Capacitor && Capacitor.isNativePlatform) { try { return !!Capacitor.isNativePlatform(); } catch {} }
     return location.protocol === 'capacitor:' || location.protocol === 'file:';
   }
-  // Where to send proxied requests. Web → same-origin relative path. Native →
-  // the absolute URL configured in config.js (no host otherwise).
-  function proxyUrl() {
-    const cfg = (window.CONFIG && CONFIG.aiProxyUrl || '').trim();
-    if (cfg) return cfg.replace(/\/+$/, '');
-    if (!isNative() && /^https?:$/.test(location.protocol)) return '/api/chat';
-    return '';   // native without a configured proxy → unavailable
+  // Normalize a configured proxy value into a usable absolute URL. A bare host
+  // like "anchor.vercel.app/api/chat" is otherwise treated by fetch() as a
+  // RELATIVE path and silently 404s — that was the old "couldn't reach the AI"
+  // bug. Here we force an https:// scheme onto any scheme-less value.
+  function normalizeUrl(u) {
+    u = (u || '').trim().replace(/\/+$/, '');
+    if (!u) return '';
+    if (/^https?:\/\//i.test(u)) return u;
+    if (/^\/\//.test(u)) return 'https:' + u;
+    if (/^\//.test(u)) return u;                 // same-origin relative path — leave as-is
+    return 'https://' + u;                       // scheme-less host → assume https
   }
+
+  // The ordered list of endpoints to try. We attempt each in turn so a single
+  // misconfiguration can't take AI down: on the web the same-origin "/api/chat"
+  // is always tried, and the configured absolute URL is a fallback (and vice
+  // versa). Native has no same origin, so only the configured URL applies.
+  function proxyUrls() {
+    const cfg = normalizeUrl(window.CONFIG && CONFIG.aiProxyUrl);
+    const out = [];
+    if (!isNative() && /^https?:$/.test(location.protocol)) out.push('/api/chat');
+    if (cfg) out.push(cfg);
+    return out.filter((u, i) => u && out.indexOf(u) === i);
+  }
+  // Back-compat single-URL accessor (first candidate).
+  function proxyUrl() { return proxyUrls()[0] || ''; }
   // AI is available if the user brought a key OR a proxy endpoint exists.
-  function available() { return !!userKey() || !!proxyUrl(); }
+  function available() { return !!userKey() || proxyUrls().length > 0; }
 
   const SYSTEM = `You are Anchor — a warm, perceptive companion for self-understanding and mental wellbeing. You are NOT a therapist, doctor, or crisis service, and you never claim to be.
 
@@ -66,37 +84,64 @@ Core stance:
     return (c && c.content) || '';
   }
 
+  // Fetch with a hard timeout so a hung socket can't leave the UI "thinking"
+  // forever. Falls back gracefully if AbortController isn't available.
+  async function fetchWithTimeout(url, opts, ms) {
+    let ctrl, timer;
+    try { ctrl = new AbortController(); } catch { ctrl = null; }
+    if (ctrl) { opts = Object.assign({}, opts, { signal: ctrl.signal }); timer = setTimeout(() => { try { ctrl.abort(); } catch {} }, ms); }
+    try { return await fetch(url, opts); }
+    finally { if (timer) clearTimeout(timer); }
+  }
+
   async function callRaw(messages, { json = false, temperature = 0.7, _noJsonMode = false } = {}) {
     const key = userKey();
-    const proxy = proxyUrl();
-    if (!key && !proxy) {
+    // Candidate endpoints, in priority order. BYO-key → Cerebras direct.
+    // Otherwise every proxy candidate (same-origin first on web, then configured).
+    const targets = key
+      ? [{ url: CEREBRAS_URL, auth: true }]
+      : proxyUrls().map(u => ({ url: u, auth: false }));
+    if (!targets.length) {
       const e = new Error('AI isn\'t set up yet. Add your own key in Settings → AI & Device, or configure the server proxy.');
       e.status = 503; throw e;
     }
 
     const body = { model: model(), messages, temperature };
     if (json && !_noJsonMode) body.response_format = { type: 'json_object' };
+    const payload = JSON.stringify(body);
 
-    const url = key ? CEREBRAS_URL : proxy;
-    const headers = { 'Content-Type': 'application/json' };
-    if (key) headers.Authorization = 'Bearer ' + key;   // only on the direct BYO-key path
-
-    let res;
-    try {
-      res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-    } catch (netErr) {
-      const e = new Error('Could not reach the AI service. Check your connection.'); e.status = 0; throw e;
-    }
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      // If JSON-mode wasn't accepted, retry once as plain text.
-      if (json && !_noJsonMode && (res.status === 400 || res.status === 502) && /response_format|json/i.test(text)) {
-        return callRaw(messages, { json, temperature, _noJsonMode: true });
+    let lastErr = null;
+    // Try each endpoint; within each, retry once on a transient network/timeout.
+    for (const target of targets) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (target.auth) headers.Authorization = 'Bearer ' + key;
+      let res = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          res = await fetchWithTimeout(target.url, { method: 'POST', headers, body: payload }, 35000);
+          break;
+        } catch (netErr) {
+          lastErr = Object.assign(new Error('Could not reach the AI service. Check your connection.'), { status: 0 });
+          // brief backoff before the single retry
+          if (attempt === 0) await new Promise(r => setTimeout(r, 600));
+        }
       }
-      const e = new Error('AI error (' + res.status + ')'); e.status = res.status === 429 ? 429 : 502; e.detail = text; throw e;
+      if (!res) continue;   // both attempts failed on this endpoint → try the next
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        // If JSON-mode wasn't accepted, retry once as plain text (same endpoint set).
+        if (json && !_noJsonMode && (res.status === 400 || res.status === 502) && /response_format|json/i.test(text)) {
+          return callRaw(messages, { json, temperature, _noJsonMode: true });
+        }
+        lastErr = Object.assign(new Error('AI error (' + res.status + ')'), { status: res.status === 429 ? 429 : 502, detail: text });
+        // 404/405 usually means "wrong endpoint" → fall through to the next candidate.
+        if (res.status === 404 || res.status === 405) continue;
+        throw lastErr;
+      }
+      const data = await res.json().catch(() => null);
+      return extractContent(data);
     }
-    const data = await res.json().catch(() => null);
-    return extractContent(data);
+    throw lastErr || Object.assign(new Error('Could not reach the AI service.'), { status: 0 });
   }
 
   function langLine(lang) { return I18N.modelLangLine(lang); }
@@ -105,6 +150,9 @@ Core stance:
     let s = (text || '').trim();
     if (s.startsWith('```')) s = s.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
     const a = s.indexOf('{'), b = s.lastIndexOf('}');
+    // Guard: if there's no JSON object at all, fail with a clear error instead of
+    // slicing with a negative index (which produced an opaque parse failure).
+    if (a < 0 || b <= a) throw new Error('AI did not return JSON');
     if (a > 0 || b < s.length - 1) s = s.slice(a, b + 1);
     return JSON.parse(s);
   }

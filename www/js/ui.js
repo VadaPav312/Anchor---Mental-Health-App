@@ -135,7 +135,7 @@
         body: el('p', { class: 'soft', style: { lineHeight: '1.5' } }, message),
         actions: [
           el('button', { class: 'btn btn-ghost btn-sm', onclick: () => { m.close(); resolve(false); } }, t('app.cancel')),
-          el('button', { class: 'btn btn-sm ' + (opts.danger ? 'btn-primary' : 'btn-primary'), onclick: () => { m.close(); resolve(true); } }, opts.confirmLabel || t('app.confirm')),
+          el('button', { class: 'btn btn-sm ' + (opts.danger ? 'btn-danger' : 'btn-primary'), onclick: () => { m.close(); resolve(true); } }, opts.confirmLabel || t('app.confirm')),
         ],
       });
     });
@@ -150,6 +150,13 @@
     const off = c * (1 - pct);
     const grad = opts.gradId || 'rg' + Math.random().toString(36).slice(2, 7);
     const col = opts.color || ['var(--a1)', 'var(--a2)'];
+    // Scale the centered number with the ring's diameter so it always fits INSIDE
+    // the stroke instead of overflowing across / being clipped by the circle. The
+    // fixed 2rem in CSS was fine for a 120px ring but overflowed the 72–96px ones
+    // used on the sleep screen. An explicit opts.textSize still wins.
+    const numSize = opts.textSize || Math.max(13, Math.round(size * 0.26)) + 'px';
+    // Keep the label + number within the clear inner diameter (2r − 2·stroke).
+    const inner = Math.max(0, 2 * r - 2 * sw);
     return `<div class="ring-wrap" style="width:${size}px;height:${size}px">
       <svg width="${size}" height="${size}">
         <defs><linearGradient id="${grad}" x1="0" y1="0" x2="1" y2="1">
@@ -158,8 +165,8 @@
         <circle class="ring-val" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="url(#${grad})" stroke-width="${sw}"
           stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
       </svg>
-      <div class="ring-center">
-        <div class="rc-num"${opts.textSize ? ` style="font-size:${opts.textSize};letter-spacing:-0.02em"` : ''}>${opts.text != null ? opts.text : Math.round(value)}</div>
+      <div class="ring-center" style="max-width:${inner}px">
+        <div class="rc-num" style="font-size:${numSize};letter-spacing:-0.02em;line-height:1">${opts.text != null ? opts.text : Math.round(value)}</div>
         ${opts.label ? `<div class="rc-lbl">${opts.label}</div>` : ''}
       </div></div>`;
   }
