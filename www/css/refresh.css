@@ -97,6 +97,30 @@ body.doodles-off .ambient-doodles { display: none; }
 .intro-grain { position: absolute; inset: 0; opacity: 0.05; pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
+/* Ambient background layer — live "metric" chips drifting up behind the stage,
+   so the intro always feels like something is happening. Sits above the orbs
+   but below the readable content column (.intro-stage is z-index 2). */
+.intro-ambient { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.intro-float {
+  position: absolute; bottom: -12%;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 12px 7px 9px; border-radius: 999px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 8px 26px -14px rgba(0,0,0,0.6);
+  white-space: nowrap; opacity: 0;
+  animation-name: intro-float-up; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+.intro-float-e { font-size: 1.05rem; line-height: 1; }
+.intro-float-l { font-size: 0.78rem; font-weight: 600; letter-spacing: -0.01em; color: var(--ink-soft); }
+@keyframes intro-float-up {
+  0%   { opacity: 0; transform: translateY(0) translateX(0) scale(0.92); }
+  12%  { opacity: 0.85; }
+  50%  { transform: translateY(-46vh) translateX(14px) scale(1); }
+  88%  { opacity: 0.85; }
+  100% { opacity: 0; transform: translateY(-92vh) translateX(-8px) scale(0.96); }
+}
+
 .intro-skip {
   position: absolute; top: calc(var(--safe-t) + 14px); right: 18px; z-index: 3;
   padding: 7px 14px; border-radius: 999px; font-size: 0.8rem; font-weight: 600;
@@ -155,6 +179,7 @@ body.doodles-off .ambient-doodles { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .intro-orb, .intro-mark, .intro-wx-ring { animation: none; }
+  .intro-ambient { display: none; }
   .intro-enter > * { animation-duration: .01ms; }
 }
 

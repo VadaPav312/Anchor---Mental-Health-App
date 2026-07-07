@@ -201,7 +201,6 @@ I18N.register('en', {
     ready: 'You’re anchored',
     readySub: 'The more you share, the clearer the picture becomes. Start with tonight.',
     enter: 'Enter Anchor',
-    exploreDemo: 'Explore with demo data',
   },
 
   brief: {
@@ -530,7 +529,6 @@ I18N.register('en', {
     sleepSchedule: 'Sleep schedule', bedtime: 'Bedtime', wakeTime: 'Wake time',
     bedtimeSub: 'After wind-down, Anchor rests in goodnight mode until your wake time.',
     location: 'Location weather', locationSub: 'Enable location to see your live local weather.', locationRefresh: 'Refresh weather',
-    demoData: 'Demo data (for showing Anchor off)', demoLoad: 'Load demo data', demoClear: 'Clear & start fresh',
     units: 'Units', tempUnit: 'Temperature', celsius: 'Celsius', fahrenheit: 'Fahrenheit',
     device: 'AI & Device',
     aiKey: 'Cerebras API key', aiKeySub: 'Lives only on this device. Powers on-device AI reflection.',

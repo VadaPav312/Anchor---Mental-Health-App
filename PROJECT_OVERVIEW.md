@@ -124,7 +124,6 @@ pushup-server/
       store.js           Single reactive on-device source of truth (+ derive selectors)
       stats.js           Lagged-correlation / statistics engine
       sleepscore.js      Pure sleep + environment scoring helpers
-      seed.js            Demo-data generator ("Explore with demo data")
       ui.js              DOM helpers, sheets/modals, rings, sparklines, toasts, haptics
       icons.js           Inline SVG icon set
       gamify.js          XP, 16 levels, confetti + success haptic
@@ -411,9 +410,8 @@ privacy gate. A breathing reset is always available.
 enough to make Anchor feel personal from minute one: **name**, an **accent color**
 (applied live), the **values** that matter (a uniform grid plus custom entries),
 a **mood baseline**, **reminders** (opt-in), and a **stay-signed-in vs. log-out-
-on-close** choice. It includes an auto-playing 30-second preview montage and an
-**"Explore with demo data"** path so a new user (or a hackathon judge) can see a
-fully alive app immediately via `seed.js`.
+on-close** choice. It includes an auto-playing preview montage that introduces
+the app before the user starts with their own real data.
 
 **The intro "simulation" (`intro.js`)** is a separate, glossy cinematic that plays
 **once, right after sign-in**. It introduces the app in a few tap-to-advance

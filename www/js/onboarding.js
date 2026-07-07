@@ -259,24 +259,21 @@
     ]);
   }
 
-  // 7 — ready (with demo-data offer)
+  // 7 — ready
   function ready() {
     frame([
       UI.el('div', { class: 'tac', style: { fontSize: '3.4rem', marginBottom: '10px', animation: 'pop .5s var(--ease-spring)' } }, '⚓'),
       UI.el('h1', { class: 'serif', style: { fontSize: '2.3rem', textAlign: 'center', marginBottom: '12px' } }, t('onb.ready')),
       UI.el('p', { class: 'soft tac', style: { lineHeight: '1.55', marginBottom: '26px' } }, t('onb.readySub')),
-      UI.btn(t('onb.enter'), { class: 'btn-primary btn-lg', block: true, onClick: () => finish(false) }),
-      window.Seed ? UI.el('button', { class: 'btn btn-ghost btn-sm', style: { marginTop: '12px', alignSelf: 'center' },
-        onclick: () => finish(true) }, t('onb.exploreDemo')) : null,
+      UI.btn(t('onb.enter'), { class: 'btn-primary btn-lg', block: true, onClick: () => finish() }),
       UI.el('p', { class: 'tiny muted tac', style: { marginTop: '14px', lineHeight: '1.5' } }, t('onb.privacySub')),
     ]);
   }
 
-  function finish(useDemo) {
+  function finish() {
     Store.profile.update({ name: draft.name, onboarded: true, createdAt: Date.now() });
     Store.values.set(draft.values.length ? draft.values : [{ id: 'presence', name: 'Being present', why: '' }, { id: 'connection', name: 'Connection', why: '' }]);
-    if (useDemo) { Seed.apply(); }
-    else if (draft.baseline != null) {
+    if (draft.baseline != null) {
       Store.moods.add({ valence: draft.baseline, energy: 5 + draft.baseline, arousal: 5, note: '', tags: [] });
     }
     Store.set('settings.lang', I18N.lang);

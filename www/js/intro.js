@@ -43,11 +43,34 @@
     // .intro-frame is a full-bleed backdrop that fills the whole screen on every
     // device (no phone-shaped surround); the inner .intro-stage keeps a readable
     // centered content column. .intro-sim is just the fixed-position backdrop.
+    // Ambient background layer — live "metrics" drifting behind the scenes so the
+    // stage always feels alive. Purely CSS-animated (no JS timers) so it keeps
+    // playing across every scene change and never gets cleared by clearTimers().
+    const AMBIENT = [
+      { e: '🛏️', l: '7h 42m' }, { e: '⚡', l: 'Energy' }, { e: '💗', l: '62 bpm' },
+      { e: '🌙', l: 'Restful' }, { e: '☀️', l: 'Clear' }, { e: '💧', l: 'Hydrated' },
+      { e: '🧭', l: 'On track' }, { e: '📈', l: 'Trending up' },
+    ];
+    const ambient = E('div', { class: 'intro-ambient', 'aria-hidden': 'true' },
+      AMBIENT.map((f, n) => E('div', {
+        class: 'intro-float',
+        style: {
+          left: (5 + n * 11.6) + '%',
+          animationDelay: (n * 1.7).toFixed(1) + 's',
+          animationDuration: (13 + (n % 4) * 2.4).toFixed(1) + 's',
+        },
+      }, [
+        E('span', { class: 'intro-float-e' }, f.e),
+        E('span', { class: 'intro-float-l' }, f.l),
+      ]))
+    );
+
     const frame = E('div', { class: 'intro-frame' }, [
       E('div', { class: 'intro-orb intro-orb-a' }),
       E('div', { class: 'intro-orb intro-orb-b' }),
       E('div', { class: 'intro-orb intro-orb-c' }),
       E('div', { class: 'intro-grain' }),
+      ambient,
       skip,
       stage,
       hint,
@@ -108,6 +131,11 @@
     const dots = SCENES.map(() => E('span', { class: 'intro-dot' }));
     dots.forEach(d => dotsRow.appendChild(d));
 
+    // How long each scene lingers before it plays itself forward. The cinematic
+    // runs on its own so the reader can just watch; a tap still jumps ahead, and
+    // the final scene holds on its CTA (no auto-advance).
+    const DWELL = [3600, 4600, 4400];
+
     let i = -1;
     function show(k) {
       clearTimers();                       // stop the previous scene's animations
@@ -120,6 +148,7 @@
       dots.forEach((d, n) => { d.classList.toggle('done', n < k); d.classList.toggle('active', n === k); });
       hint.classList.toggle('hidden', isLast);   // last scene uses its CTA instead
       UI.haptic('light');
+      if (!isLast) _timers.push(setTimeout(() => { if (i === k) advance(); }, DWELL[k] || 3800));
     }
 
     function advance() { if (i < SCENES.length - 1) show(i + 1); }

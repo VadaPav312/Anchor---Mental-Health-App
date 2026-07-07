@@ -547,21 +547,6 @@
       onClick: function () { fileInput.click(); },
     });
 
-    // Demo data
-    const demoBtn = UI.btn(t('app.start'), {
-      class: 'btn-ghost btn-sm',
-      icon: 'spark',
-      onClick: async function () {
-        const yes = await UI.confirm(t('app.confirm'), { title: t('app.name') });
-        if (!yes) return;
-        if (window.Seed && Seed.apply) {
-          Seed.apply();
-          UI.toast(t('app.saved'), 'good');
-          Anchor.refresh();
-        }
-      },
-    });
-
     // Erase
     const eraseBtn = UI.btn(t('set.erase'), {
       class: 'btn-ghost btn-sm',
@@ -591,7 +576,6 @@
       glassSection([
         dataRow(t('set.export'), t('set.exportSub'), exportBtn),
         dataRow(t('set.import'), null, importBtn),
-        dataRow(t('app.start'), null, demoBtn),
         dataRow(t('set.erase'), t('set.eraseSub'),
           UI.el('div', { style: { color: 'var(--bad)' } }, [eraseBtn])),
       ]),

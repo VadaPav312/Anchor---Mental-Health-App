@@ -111,7 +111,7 @@ www/
         speech.js          Text-to-Speech + Speech-to-Text (natural-voice picker)
         llm.js             on-device AI client
         registry.js        the view/plugin contract  (Anchor.register / Anchor.go)
-        ui.js icons.js native.js crisis.js seed.js gamify.js
+        ui.js icons.js native.js crisis.js gamify.js
         features/*.js      every screen; combined.js merges Journey & Calm
         onboarding.js  app.js   (boot, gate, privacy, navigation, theming)
 ios/
