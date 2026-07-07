@@ -129,8 +129,10 @@
     const history = convo.slice(-12).map(m => ({ role: m.role, content: m.content }));
     const wx = (window.Store && Store.derive && Store.derive.todayWeather && Store.derive.todayWeather());
     const name = (Store.profile && Store.profile.name && Store.profile.name()) || '';
+    const values = (window.Store && Store.values && Store.values.all) ? Store.values.all().map(v => v && v.name).filter(Boolean) : [];
     const extra = t('talk.system')
       + (name && name !== 'friend' ? ('\n\nThe person\'s name is ' + name + '.') : '')
+      + (values.length ? ('\n\nThe values they chose to steer their life by are: ' + values.join(', ') + '. Keep these gently in mind — when it fits naturally, help them move toward what they value, but never force it or lecture.') : '')
       + (wx ? ('\n\nTheir logged inner-weather today reads "' + wx + '" — only reference it if relevant.') : '');
 
     try {

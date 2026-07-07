@@ -606,15 +606,16 @@
       '- Energy balance today: ' + (c.energy.count ? ((c.energy.net > 0 ? '+' : '') + c.energy.net) : 'not logged') + '\n' +
       '- Streak: ' + c.streak + ' days\n' +
       '- Pattern Anchor noticed: ' + (c.insight || 'none yet') + '\n' +
-      '- Their values: ' + (c.values.join(', ') || 'unset') + '\n' +
+      '- What matters most to them, the values they chose to steer by: ' + (c.values.join(', ') || 'unset') + '\n' +
       '- Tasks they set down last night to act on: ' + (c.tasks.length ? c.tasks.join('; ') : 'none') + '\n' +
       (c.lastJournal ? '- The last thing they journaled (' + c.lastJournal.when + '): "' + c.lastJournal.text + '"\n' : '') +
       '\n' +
       'Write a warm, concise, NON-clinical morning briefing as JSON ONLY. ' +
+      (c.values.length ? 'Anchor their day in what they value: let their chosen values shape the tone, and make at least one focus a small, concrete way to live one of those values today (you may name the value). ' : '') +
       (c.lastJournal ? 'In the summary, gently echo back ONE short phrase or theme from what they journaled (quote 2-5 of their own words) and connect it to today — this should feel personal, like you actually read it. Never be clinical about it.\n' : '\n') +
-      '{ "summary": "<2-3 sentences reflecting how they are doing and what today might hold, grounded in the data>",\n' +
-      '  "focus": ["<up to 3 small concrete focuses/tasks for today — fold in their set-down tasks and values>"],\n' +
-      '  "closing": "<one short encouraging line>" }';
+      '{ "summary": "<2-3 sentences reflecting how they are doing and what today might hold, grounded in the data and in what they value>",\n' +
+      '  "focus": ["<up to 3 small concrete focuses/tasks for today — fold in their set-down tasks, and tie at least one to a value they chose>"],\n' +
+      '  "closing": "<one short encouraging line, ideally nodding to what matters to them>" }';
   }
 
   // =========================================================================

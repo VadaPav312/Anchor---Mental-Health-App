@@ -135,17 +135,20 @@
 
   function prompt(period, s) {
     const n = (x, d) => (x == null ? 'no data' : (+x).toFixed(d == null ? 1 : d));
+    const values = (window.Store && Store.values && Store.values.all) ? Store.values.all().map(v => v && v.name).filter(Boolean) : [];
     return 'You are reflecting back ' + Store.profile.name() + "'s progress over the last " + period.id + '. Aggregated data:\n' +
       '- Avg sleep score: ' + n(s.avgSleep, 0) + '/100\n' +
       '- Avg mood (−2..+2): ' + n(s.avgMood) + '\n' +
       '- Mood trend (later vs earlier in period): ' + (s.trend > 0 ? '+' : '') + n(s.trend) + '\n' +
       '- Avg daily energy balance: ' + n(s.avgEnergy) + '\n' +
       '- Check-ins: ' + s.checkins + ', journal entries: ' + s.journals + ', nights logged: ' + s.nights + '\n' +
-      '- Current streak: ' + s.streak + ' days, vitality now: ' + s.vitality + '/100\n\n' +
-      'Write a warm, honest, NON-clinical progress reflection as JSON ONLY:\n' +
-      '{ "summary": "<3-4 sentences on how this ' + period.id + ' went and the trend>",\n' +
+      '- Current streak: ' + s.streak + ' days, vitality now: ' + s.vitality + '/100\n' +
+      '- The values they chose to steer by: ' + (values.join(', ') || 'unset') + '\n\n' +
+      'Write a warm, honest, NON-clinical progress reflection as JSON ONLY. ' +
+      (values.length ? 'Read the trend through the lens of what they value, and make the focus a small step toward one of those values (you may name it).\n' : '\n') +
+      '{ "summary": "<3-4 sentences on how this ' + period.id + ' went and the trend, in light of what matters to them>",\n' +
       '  "win": "<one genuine win to celebrate, grounded in the data>",\n' +
-      '  "focus": "<one concrete, gentle thing to focus on next>" }';
+      '  "focus": "<one concrete, gentle thing to focus on next, tied to a value they chose where it fits>" }';
   }
 
   Anchor.register({ id: 'progress', labelKey: 'prog.title', icon: 'trend', order: 64, tab: false, render });

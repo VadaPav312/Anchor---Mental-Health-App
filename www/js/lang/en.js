@@ -176,7 +176,7 @@ I18N.register('en', {
     colorTitle: 'Pick your color',
     colorSub: 'This becomes the background tone of your whole app — change it anytime in Settings.',
     valuesTitle: 'What matters most to you?',
-    valuesSub: 'Pick a few values that you want your days to point toward. Anchor uses these as your compass.',
+    valuesSub: 'Pick a few values that you want your days to point toward. Anchor uses these as your compass — your daily AI briefing and reflections are shaped around them.',
     valuesAddOwn: 'Add your own',
     valuesCustom: 'Name a value that matters to you',
     baselineTitle: 'One quick baseline',
