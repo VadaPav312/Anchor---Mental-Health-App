@@ -54,7 +54,11 @@
       } })));
   }
 
-  const STEPS = [welcome, name, color, values, baseline, reminders, session, preview, ready];
+  // Note: the "living preview" montage was intentionally removed from the flow —
+  // it duplicated the very-first-launch intro cinematic (see intro.js), so users
+  // were seeing the same simulation twice. The simulation now plays ONCE, at the
+  // very start, before onboarding. session → ready directly.
+  const STEPS = [welcome, name, color, values, baseline, reminders, session, ready];
   const NDOTS = 6;   // middle steps: name, color, values, baseline, reminders, session
 
   // timers owned by the auto-playing preview montage, cleared on navigation
@@ -255,92 +259,7 @@
     ]);
   }
 
-  // 7 — the 30-second living preview. Instead of telling new users (and judges)
-  // what Anchor becomes, we SHOW it: an auto-playing montage of the inner-weather
-  // landscape, a real cause→effect insight surfacing, and a celebratory level-up.
-  // Everything here reuses the same components the live app paints, so this is a
-  // faithful taste — Anchor, alive, in ten seconds.
-  function preview() {
-    const SCENES = [sceneWeather, sceneInsight, sceneLevel];
-    let idx = 0;
-    const stage = UI.el('div', { class: 'onb-prev-stage' });
-    const bars = SCENES.map(() => UI.el('div', { class: 'opb' }, [UI.el('i')]));
-    const caption = UI.el('div', { class: 'onb-prev-cap small soft tac' }, '');
-
-    function show(i) {
-      idx = i;
-      UI.clear(stage);
-      const sc = SCENES[i]();
-      const frameEl = UI.el('div', { class: 'onb-prev-scene' }, [sc.el]);
-      stage.appendChild(frameEl);
-      caption.textContent = sc.caption;
-      bars.forEach((b, k) => { b.classList.toggle('done', k < i); b.classList.toggle('active', k === i); });
-      if (sc.onShow) _previewTimers.push(setTimeout(sc.onShow, 120));
-      UI.haptic('light');
-    }
-    const DUR = 4200;
-    function advance() {
-      show((idx + 1) % SCENES.length);
-      _previewTimers.push(setTimeout(advance, DUR));
-    }
-
-    frame([
-      UI.el('div', { class: 'eyebrow tac' }, t('onb.previewEyebrow')),
-      UI.el('h2', { class: 'serif tac', style: { fontSize: '1.9rem', margin: '6px 0 14px' } }, t('onb.previewTitle')),
-      UI.el('div', { class: 'onb-prev-bars' }, bars),
-      UI.el('div', { class: 'onb-prev glass-card' }, [stage]),
-      caption,
-      UI.el('div', { class: 'col gap2', style: { marginTop: '22px' } }, [
-        UI.btn(t('onb.previewContinue'), { class: 'btn-primary btn-lg', block: true, onClick: () => { clearPreview(); go(8); } }),
-        UI.el('button', { class: 'btn btn-ghost btn-sm', style: { alignSelf: 'center' }, onclick: () => { clearPreview(); go(6); } }, t('app.back')),
-      ]),
-    ]);
-    show(0);
-    _previewTimers.push(setTimeout(advance, DUR));
-  }
-
-  // ---- preview scenes (each returns { el, caption, onShow? }) --------------
-  function sceneWeather() {
-    const moods = ['☀️', '🌤️', '☁️', '🌧️', '⛈️', '🌫️'];
-    const emoji = UI.el('div', { class: 'onb-prev-wx' }, moods[0]);
-    const el = UI.el('div', { class: 'onb-prev-weather' }, [emoji, UI.el('div', { class: 'onb-prev-wxsub small soft' }, t('dash.todayWeather'))]);
-    let k = 0;
-    const onShow = () => { _previewTimers.push(setInterval(() => { k = (k + 1) % moods.length; emoji.textContent = moods[k]; }, 650)); };
-    return { el, caption: t('onb.prevWeather'), onShow };
-  }
-  function sceneInsight() {
-    const node = (emoji, label, delay) => UI.el('div', { class: 'ce-node', style: { animationDelay: delay } }, [
-      UI.el('div', { class: 'ce-emoji' }, emoji),
-      UI.el('div', { class: 'ce-lbl' }, label),
-    ]);
-    const thread = UI.el('div', { class: 'cause-thread', style: { justifyContent: 'center' } }, [
-      node('🛏️', t('metric.sleepDur'), '0s'),
-      UI.el('div', { class: 'ce-link' }, [
-        UI.el('div', { class: 'ce-flow' }),
-        UI.el('div', { class: 'ce-lag' }, t('pat.lag1')),
-        UI.frag('<span class="ce-arrow">' + Icons.get('chevron') + '</span>'),
-      ]),
-      node('⚡', t('metric.energyMood'), '.28s'),
-    ]);
-    const el = UI.el('div', { class: 'onb-prev-insight' }, [
-      UI.el('div', { class: 'eyebrow', style: { color: 'var(--a1)', marginBottom: '12px' } }, '✦ ' + t('dash.topInsight')),
-      thread,
-      UI.el('div', { class: 'small soft', style: { marginTop: '14px', lineHeight: '1.5' } }, t('onb.prevInsightEg')),
-    ]);
-    return { el, caption: t('onb.prevInsight') };
-  }
-  function sceneLevel() {
-    const el = UI.el('div', { class: 'onb-prev-level' }, [
-      UI.el('div', { class: 'onb-prev-spark', style: { fontSize: '3.2rem' } }, '✨'),
-      UI.el('div', { class: 'eyebrow', style: { marginTop: '6px' } }, t('gam.levelUp')),
-      UI.el('div', { class: 'serif grad-text', style: { fontSize: '1.9rem', margin: '2px 0' } }, t('gam.lvN', { n: 4 })),
-      UI.el('div', { class: 'small soft' }, t('onb.prevLevelSub')),
-    ]);
-    const onShow = () => { if (window.Gamify && Gamify.confettiBurst) Gamify.confettiBurst(28); if (UI.hapticSuccess) UI.hapticSuccess(); };
-    return { el, caption: t('onb.prevLevel'), onShow };
-  }
-
-  // 8 — ready (with demo-data offer)
+  // 7 — ready (with demo-data offer)
   function ready() {
     frame([
       UI.el('div', { class: 'tac', style: { fontSize: '3.4rem', marginBottom: '10px', animation: 'pop .5s var(--ease-spring)' } }, '⚓'),

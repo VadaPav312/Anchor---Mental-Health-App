@@ -33,6 +33,7 @@
     thermo: S(`<path ${W} d="M14 14.8V5a2 2 0 1 0-4 0v9.8a4 4 0 1 0 4 0Z"/>`),
     droplet: S(`<path ${W} d="M12 3s6 6.4 6 10.5A6 6 0 0 1 6 13.5C6 9.4 12 3 12 3Z"/>`),
     sound: S(`<path ${W} d="M4 9v6h4l5 4V5L8 9H4Z"/><path ${W} d="M16 9a4 4 0 0 1 0 6"/>`),
+    mic: S(`<rect x="9" y="3" width="6" height="11" rx="3" ${W}/><path ${W} d="M5 11a7 7 0 0 0 14 0M12 18v3M8.5 21h7"/>`),
     sun: S(`<circle cx="12" cy="12" r="4" ${W}/><path ${W} d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/>`),
     leaf: S(`<path ${W} d="M5 19c0-8 6-14 14-14 0 8-6 14-14 14Z"/><path ${W} d="M5 19 12 12"/>`),
     trend: S(`<path ${W} d="M4 16l5-5 3 3 7-7"/><path ${W} d="M15 7h4v4"/>`),

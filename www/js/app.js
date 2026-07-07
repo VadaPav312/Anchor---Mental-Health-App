@@ -12,6 +12,9 @@
   function navigate(id, params, isRefresh) {
     const view = Anchor.byId(id);
     if (!view) { console.warn('no view', id); return; }
+    // let the outgoing view tear down (stop timers, audio, mic) before leaving.
+    const prev = Anchor.byId(Anchor._state.current);
+    if (prev && prev.id !== id && prev.onHide) { try { prev.onHide(); } catch (e) { console.warn(e); } }
     Anchor._state.current = id;
     Anchor._state.params = params || null;
 

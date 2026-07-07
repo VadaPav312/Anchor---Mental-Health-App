@@ -40,9 +40,9 @@
     ]);
     const skip = E('button', { class: 'intro-skip', 'aria-label': t('sim.skip'), onclick: (e) => { e.stopPropagation(); UI.haptic('light'); finish(done); } }, t('sim.skip'));
 
-    // Everything lives inside a phone-width .intro-frame so that on a wide
-    // desktop screen it reads like the phone version (a centered column) rather
-    // than sprawling across the whole display. .intro-sim is just the backdrop.
+    // .intro-frame is a full-bleed backdrop that fills the whole screen on every
+    // device (no phone-shaped surround); the inner .intro-stage keeps a readable
+    // centered content column. .intro-sim is just the fixed-position backdrop.
     const frame = E('div', { class: 'intro-frame' }, [
       E('div', { class: 'intro-orb intro-orb-a' }),
       E('div', { class: 'intro-orb intro-orb-b' }),

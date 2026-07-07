@@ -37,6 +37,7 @@ I18N.register('en', {
     home: 'Home', sleep: 'Sleep', patterns: 'Patterns', weather: 'Inner Weather',
     experiments: 'Lab', decompress: 'Wind-down', values: 'Compass',
     mirror: 'Mirror', energy: 'Energy', journal: 'Journal', checkin: 'Check-in',
+    talk: 'Talk',
     settings: 'Settings', more: 'More', menu: 'Menu',
     journey: 'Journey', calm: 'Calm',
     scrollHint: 'Scroll to roll · tap to open', tapHint: 'Tap any to open',
@@ -44,6 +45,24 @@ I18N.register('en', {
 
   journey: { sub: 'Look back at how far you’ve come.' },
   calm: { sub: 'Settle your system — day or night.' },
+
+  talk: {
+    title: 'Talk to Anchor',
+    sub: 'Say what’s on your mind — Anchor listens and replies.',
+    empty: 'Tap the mic and just talk. Anchor listens, then replies — out loud if you like. Nothing here is a substitute for a professional, and it all stays on your device.',
+    tapToTalk: 'Tap to talk',
+    listening: 'Listening… tap to stop',
+    thinking: 'Thinking…',
+    tapToStop: 'Speaking… tap to stop',
+    readAloud: 'Read replies aloud',
+    typePlaceholder: 'Or type instead…',
+    send: 'Send',
+    clear: 'Clear conversation',
+    noMic: 'Couldn’t start the microphone. Check the mic permission for this site.',
+    noMicHint: 'Voice input isn’t available in this browser, but you can still type below and Anchor will reply.',
+    needsAI: 'I’m not connected to AI yet. Add a key or server proxy in Settings → AI & Device, and I’ll be able to reply.',
+    system: 'The person is talking WITH you in a back-and-forth conversation, often by voice. Keep each reply short and natural — usually 1–3 sentences, and under ~60 words, because it may be read aloud. Be warm, plain-spoken and specific. When it helps them reflect, end with one gentle question. Never diagnose or claim to be a therapist or crisis service.',
+  },
 
   snd: {
     title: 'Soundscapes', tab: 'Sounds', sub: 'Colored noise for focus, calm and sleep.',

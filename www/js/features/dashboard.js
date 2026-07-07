@@ -287,7 +287,7 @@
         ]),
         UI.frag(`<span style="font-size:1.6rem">🌙</span>`),
       ]),
-      UI.btn(t('dash.startWindDown'), { class: evening ? 'btn-primary' : 'btn-ghost', block: true, icon: 'decompress', onClick: () => Anchor.go('decompress') }),
+      UI.btn(t('dash.startWindDown'), { class: (evening ? 'btn-primary' : 'btn-ghost') + ' mt3', block: true, icon: 'decompress', onClick: () => Anchor.go('decompress') }),
     ]);
   }
 
