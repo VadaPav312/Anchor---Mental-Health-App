@@ -2,11 +2,11 @@
 // intro.js — the "simulation": a glossy cinematic that introduces Anchor right
 // after the user signs in (first time only). It plays fully on its OWN — scene
 // to scene automatically, no taps to continue — walking through what Anchor
-// does (inner weather → a private morning briefing → connected patterns → a
-// calm toolkit → private-by-design). All the while, ambient "pop-ups" drawn
-// from a pool of 1000+ gentle, feature-flavored lines drift in at the edges at
-// random moments (never over the words being spoken). When it ends it crossfades
-// smoothly into the privacy screen. Skippable; shown once ('settings.introSeen').
+// does across many scenes (inner weather → a private morning briefing →
+// connected patterns → private journal → sleep, understood → someone to talk
+// to → steered by your values → a calm toolkit → private-by-design). When it
+// ends it crossfades smoothly into the privacy screen. Skippable; shown once
+// ('settings.introSeen').
 //
 //   Intro.shouldShow()  -> bool   (first launch, not yet seen, not onboarded)
 //   Intro.play(done)    -> plays the cinematic, then calls done()
@@ -20,88 +20,17 @@
     return Store.get(SEEN_KEY, false) !== true;
   }
 
-  function reduceMotion() {
-    try { return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
-    catch { return false; }
-  }
-
-  // Two independent timer sets: per-scene animations (cleared on every scene
-  // change) and the ambient pop-up spawner (lives for the whole intro).
   let _timers = [];
-  let _ambient = [];
   let _finishing = false;
-  function clearTimers()  { _timers.forEach(id => { clearTimeout(id); clearInterval(id); }); _timers = []; }
-  function clearAmbient() { _ambient.forEach(id => { clearTimeout(id); clearInterval(id); }); _ambient = []; }
-
-  // ---- ambient phrase pool: 1000+ gentle, feature-flavored lines -----------
-  // Built once, combinatorially, so nothing feels canned or repetitive. No
-  // clinical numbers (no "62 bpm", no "7h 42m") — just calm, human lines and
-  // the things Anchor can do for you.
-  let _pool = null;
-  function pool() {
-    if (_pool) return _pool;
-    const out = [];
-    const push = (e, l) => out.push({ e, l });
-
-    // 1 — named features
-    [
-      ['🌤️', 'Inner weather'], ['🔗', 'Connected patterns'], ['📓', 'Private journal'],
-      ['☀️', 'A morning briefing'], ['🌙', 'Sleep trends'], ['🧘', 'A calm toolkit'],
-      ['🧭', 'Your values compass'], ['🔋', 'Energy balance'], ['🔔', 'Gentle reminders'],
-      ['🔒', 'On-device & private'], ['💬', 'Someone to talk to'], ['📈', 'Progress reflections'],
-      ['🌬️', 'Breathing space'], ['🪞', 'An honest mirror'], ['✅', 'Tiny daily wins'],
-      ['🎯', "Today's focus"], ['📊', 'Mood trends'], ['🌱', 'Growth over time'],
-      ['🕊️', 'A calmer mind'], ['💡', 'Pattern insights'], ['🗺️', 'Your weather map'],
-      ['🧩', 'See what connects'], ['📝', 'Say it in your words'], ['🌗', 'Wind-down mode'],
-    ].forEach(([e, l]) => push(e, l));
-
-    // 2 — affirmations
-    [
-      ['💗', 'You showed up today'], ['✨', 'This is your space'], ['🌿', 'One breath at a time'],
-      ['🤍', 'Be kind to yourself'], ['🌈', 'Feelings pass'], ['⭐', 'Small steps count'],
-      ['🫶', "You're not alone in this"], ['🌊', 'Ride the wave'], ['☁️', 'Let it be light'],
-      ['🌅', 'A fresh start, always'], ['🧡', 'Progress, not perfect'], ['💛', 'Rest is productive too'],
-      ['🌻', 'Grow at your own pace'], ['🍃', 'Just notice — no judgment'], ['🌟', 'Your feelings are valid'],
-      ['🕯️', 'Slow is okay'], ['🤗', 'You are enough'], ['💫', 'Be where your feet are'],
-      ['🪴', 'Tend to yourself'], ['🌙', 'Rest is not falling behind'], ['🧭', 'Come back to what matters'],
-      ['💧', 'Let the hard part move through'], ['🌸', 'Gentle is strong'], ['🌤️', 'Softer days are coming'],
-    ].forEach(([e, l]) => push(e, l));
-
-    // 3 — "verb + object" (≈350)
-    const V = ['Notice', 'Name', 'Welcome', 'Honor', 'Track', 'Observe', 'Tend', 'Cherish',
-      'Sit with', 'Make room for', 'Befriend', 'Untangle', 'Revisit', 'Celebrate', 'Soften around', 'Breathe through'];
-    const O = ['how you feel', 'your inner weather', "today's mood", 'the quiet wins', 'what drained you',
-      'what lifted you', 'your energy', "tonight's rest", 'this moment', 'the small stuff', 'a passing thought',
-      'the whole week', 'your own pace', 'a gentle reset', 'one true feeling', 'the day ahead',
-      "last night's sleep", 'a hard hour', 'the good moments', 'your next breath', 'what matters most', 'a quiet victory'];
-    const EV = ['🌿', '✨', '🍃', '💭', '🕊️', '🌙', '☁️', '🌊', '🌱', '🤍'];
-    let n = 0;
-    V.forEach(v => O.forEach(o => { push(EV[n % EV.length], v + ' ' + o); n++; }));
-
-    // 4 — "adjective + noun" (≈675)
-    const A = ['Quiet', 'Gentle', 'Steady', 'Honest', 'Small', 'Kind', 'Calm', 'Clear', 'Softer',
-      'Brighter', 'Slower', 'Grounded', 'Warm', 'Restful', 'Present', 'Mindful', 'Patient', 'Tender',
-      'Open', 'Curious', 'Hopeful', 'Rooted', 'Easeful', 'Balanced', 'Renewed', 'Peaceful'];
-    const N = ['mornings', 'evenings', 'check-ins', 'moments', 'breaths', 'reflections', 'resets',
-      'patterns', 'insights', 'nights of rest', 'days', 'wins', 'feelings', 'spaces', 'rhythms',
-      'intentions', 'notes to self', 'pauses', 'beginnings', 'streaks', 'weather within', 'journeys',
-      'habits', 'values', 'hours', 'weeks'];
-    const EA = ['🌤️', '🌱', '🍃', '🕊️', '☀️', '🌙', '🌊', '✨', '🌿', '💫'];
-    n = 0;
-    A.forEach(a => N.forEach(nn => { push(EA[n % EA.length], a + ' ' + nn); n++; }));
-
-    _pool = out;    // ≈1100 unique lines
-    return _pool;
-  }
+  function clearTimers() { _timers.forEach(id => { clearTimeout(id); clearInterval(id); }); _timers = []; }
 
   function play(done) {
     const prev = document.getElementById('intro-sim'); if (prev) prev.remove();
-    clearTimers(); clearAmbient();
+    clearTimers();
     _finishing = false;
 
     const stage = E('div', { class: 'intro-stage' });
     const dotsRow = E('div', { class: 'intro-dots' });
-    const ambient = E('div', { class: 'intro-ambient', 'aria-hidden': 'true' });
     const skip = E('button', { class: 'intro-skip', 'aria-label': t('sim.skip'),
       onclick: (e) => { e.stopPropagation(); UI.haptic('light'); finish(done); } }, t('sim.skip'));
 
@@ -112,43 +41,12 @@
       E('div', { class: 'intro-orb intro-orb-b' }),
       E('div', { class: 'intro-orb intro-orb-c' }),
       E('div', { class: 'intro-grain' }),
-      ambient,
       skip,
       stage,
       dotsRow,
     ]);
     const root = E('div', { id: 'intro-sim', class: 'intro-sim' }, [frame]);
     document.body.appendChild(root);
-
-    // ---- ambient pop-ups: random line, random time, edges only ------------
-    function spawnAmbient() {
-      // never crowd the screen; keep at most a few floating at once
-      if (ambient.childElementCount < 5) {
-        const p = pool();
-        const it = p[Math.floor(Math.random() * p.length)];
-        const chip = E('div', { class: 'intro-float' }, [
-          E('span', { class: 'intro-float-e' }, it.e),
-          E('span', { class: 'intro-float-l' }, it.l),
-        ]);
-        // Anchor to the LEFT or RIGHT edge, and to the TOP or BOTTOM band —
-        // so pop-ups live in the corners and never cross the middle third,
-        // where the words being spoken sit.
-        const side = Math.random() < 0.5 ? 'left' : 'right';
-        chip.style[side] = (3 + Math.random() * 23).toFixed(1) + '%';
-        const topBand = Math.random() < 0.5;
-        chip.style.top = (topBand ? 6 + Math.random() * 18 : 65 + Math.random() * 19).toFixed(1) + '%';
-        const life = 5200 + Math.random() * 2800;
-        chip.style.animationDuration = Math.round(life) + 'ms';
-        ambient.appendChild(chip);
-        _ambient.push(setTimeout(() => { if (chip.parentNode) chip.remove(); }, life + 80));
-      }
-      _ambient.push(setTimeout(spawnAmbient, 820 + Math.random() * 1500));
-    }
-    if (!reduceMotion()) {
-      _ambient.push(setTimeout(spawnAmbient, 480));
-      _ambient.push(setTimeout(spawnAmbient, 1300));
-      _ambient.push(setTimeout(spawnAmbient, 2200));
-    }
 
     // ---- scene builders ---------------------------------------------------
     function featureScene(mark, titleKey, subKey) {
@@ -197,7 +95,12 @@
         E('p', { class: 'soft intro-p' }, t('sim.s2Sub')),
       ]);
     }
-    function sceneCalm() { return featureScene('🧘', 'sim.s5Title', 'sim.s5Sub'); }
+    function sceneJournal() { return featureScene('📓', 'sim.s6Title', 'sim.s6Sub'); }
+    function sceneSleep()   { return featureScene('🌙', 'sim.s7Title', 'sim.s7Sub'); }
+    function sceneTalk()    { return featureScene('💬', 'sim.s8Title', 'sim.s8Sub'); }
+    function sceneValues()  { return featureScene('🧭', 'sim.s9Title', 'sim.s9Sub'); }
+    function sceneGrowth()  { return featureScene('🌱', 'sim.s10Title', 'sim.s10Sub'); }
+    function sceneCalm()    { return featureScene('🧘', 'sim.s5Title', 'sim.s5Sub'); }
     function scenePrivate() {
       return E('div', { class: 'intro-scene' }, [
         E('div', { class: 'intro-lock' }, '🔒'),
@@ -208,9 +111,12 @@
       ]);
     }
 
-    const SCENES = [sceneBrand, sceneWeather, sceneBrief, sceneInsight, sceneCalm, scenePrivate];
+    const SCENES = [
+      sceneBrand, sceneWeather, sceneBrief, sceneInsight, sceneJournal,
+      sceneSleep, sceneTalk, sceneValues, sceneGrowth, sceneCalm, scenePrivate,
+    ];
     // How long each scene lingers before it plays itself forward (ms).
-    const DWELL  = [3600,      4200,        4400,       4800,         4400,      6000];
+    const DWELL = [3600, 4200, 4400, 4800, 4200, 4200, 4200, 4200, 4200, 4200, 6000];
     const dots = SCENES.map(() => E('span', { class: 'intro-dot' }));
     dots.forEach(d => dotsRow.appendChild(d));
 
@@ -240,7 +146,7 @@
   function finish(done) {
     if (_finishing) return;                // guard: skip + CTA + auto-timer race
     _finishing = true;
-    clearTimers(); clearAmbient();
+    clearTimers();
     try { Store.set(SEEN_KEY, true); } catch {}
     const el = document.getElementById('intro-sim');
     // Render whatever comes next (the privacy screen) UNDERNEATH first, then

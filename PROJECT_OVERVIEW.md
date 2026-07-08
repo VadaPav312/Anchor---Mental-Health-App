@@ -415,14 +415,13 @@ the app before the user starts with their own real data.
 
 **The intro "simulation" (`intro.js`)** is a separate, glossy cinematic that plays
 **once, right after sign-in**. It runs **fully on its own** (no taps to continue),
-walking through what Anchor does across auto-advancing scenes — brand, "your inner
-weather," a private morning briefing, "patterns, connected," a calm toolkit, and
-"entirely yours" — on the user's chosen accent palette so it matches the app's
-color look. While it plays, ambient **pop-ups drawn from a pool of 1000+ gentle,
-feature-flavored lines** fade in at the corners at random moments (never over the
-words on screen). It is fully skippable, remembered so it only shows once
-(`settings.introSeen`), and **crossfades smoothly into the privacy screen** when it
-ends.
+walking through what Anchor does across many auto-advancing scenes — brand, "your
+inner weather," a private morning briefing, "patterns, connected," a private
+journal, "rest, understood," "someone to talk to," "steered by your values,"
+"watch yourself grow," a calm toolkit, and "entirely yours" — on the user's chosen
+accent palette so it matches the app's color look. It is fully skippable,
+remembered so it only shows once (`settings.introSeen`), and **crossfades smoothly
+into the privacy screen** when it ends.
 
 ---
 
