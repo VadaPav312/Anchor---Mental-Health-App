@@ -23,13 +23,16 @@ I18N.register('en', {
 
   sim: {
     skip: 'Skip',
-    tapHint: 'Tap to continue',
     s1Title: 'Your inner weather',
     s1Sub: 'Every check-in becomes a forecast of how you actually feel.',
     s2Title: 'Patterns, connected',
     s2Sub: 'Anchor links your sleep, mood and energy — and shows you why.',
     s3Title: 'Entirely yours',
     s3Sub: 'Everything stays on your device. Private by design.',
+    s4Title: 'A briefing, just for you',
+    s4Sub: 'Each morning, Anchor reads your patterns and writes you a warm, private briefing.',
+    s5Title: 'Calm, on demand',
+    s5Sub: 'Breathe, ground and reset with a toolkit made for the harder moments.',
     cta: 'Get started',
   },
 
