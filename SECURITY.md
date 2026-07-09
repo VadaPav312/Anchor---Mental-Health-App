@@ -65,6 +65,18 @@ Every request must pass all of:
   there is no DOM-XSS sink for untrusted data.
 - All external links use `rel="noopener noreferrer"`.
 
+### Passcode lock (`www/js/auth.js`)
+- **PBKDF2-SHA256**, 210 000 iterations, per-account random salt; only the hash
+  and salt are stored, and verification compares in constant time.
+- **Brute-force lockout** — after a few wrong tries, each further miss triggers
+  an exponentially growing lockout (15 s → 30 s → … capped at 15 min). The
+  counter is persisted, so reloading the page can't reset it, and it clears on
+  the next correct unlock. This is what makes guessing a 4-digit PIN impractical.
+- **Auto-lock** (`www/js/app.js`) — the app re-requires the passcode after it
+  has been backgrounded for more than ~45 s, or after ~5 min of inactivity while
+  open. Only engages when a passcode is set; data is never touched, only the UI
+  is re-gated.
+
 ## On-device data & known considerations
 - All wellness data stays in the device's `localStorage`. Nothing is uploaded
   except the text a user explicitly sends for AI reflection.

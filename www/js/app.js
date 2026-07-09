@@ -462,8 +462,40 @@
     Store.on('change', () => applyWeatherTint());
     Store.on('settings', () => applyTheme());
 
+    wireAutoLock();
     gate();
     hideLoader();
+  }
+
+  // ---- auto-lock -----------------------------------------------------------
+  // Re-require the passcode after the app has been backgrounded past a short
+  // grace period, or after a stretch of inactivity while open. Only engages
+  // when a passcode is set (Auth.lock returns false otherwise), so it never
+  // nags users who chose not to set one. Data is untouched — this only re-gates
+  // the UI behind the passcode screen.
+  let _hiddenAt = 0, _lastActive = Date.now(), _autoLockWired = false;
+  const BG_GRACE = 45000;         // lock if hidden longer than 45s
+  const IDLE_MS  = 5 * 60 * 1000; // lock after 5 min with no interaction
+  function doAutoLock() {
+    if (!(window.Auth && Auth.hasLock && Auth.hasLock() && Auth.isSignedIn())) return;
+    if (Auth.lock && Auth.lock()) { hideChrome(true); gate(); }
+  }
+  function wireAutoLock() {
+    if (_autoLockWired) return;
+    _autoLockWired = true;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') { _hiddenAt = Date.now(); }
+      else {
+        const away = _hiddenAt ? Date.now() - _hiddenAt : 0;
+        _hiddenAt = 0; _lastActive = Date.now();
+        if (away > BG_GRACE) doAutoLock();
+      }
+    });
+    const mark = () => { _lastActive = Date.now(); };
+    ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, mark, { passive: true }));
+    setInterval(() => {
+      if (document.visibilityState === 'visible' && Date.now() - _lastActive > IDLE_MS) doAutoLock();
+    }, 30000);
   }
 
   // Fade out the branded loading screen once the first real screen has painted.

@@ -492,6 +492,7 @@ I18N.register('en', {
     pwLabel: 'Set a password (optional)', pwHint: 'Any length you like — choose something only you would guess.',
     pwPlaceholder: 'Choose a password', pwEnter: 'Enter your password',
     pwWrong: 'That password didn’t match',
+    pwLocked: 'Too many attempts. Try again in {time}.',
     createCta: 'Create my account', signInCta: 'Continue',
     switchToSignUp: 'New here? Create an account', switchToSignIn: 'Already have an account? Sign in',
     signedOut: 'Signed out. Your data stays safe on this device.',

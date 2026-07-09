@@ -98,6 +98,31 @@
     return true;   // no passcode set
   }
 
+  // ---- brute-force guard -----------------------------------------------------
+  // A 4-digit PIN is only 10k combinations, and PBKDF2 verification is fast, so
+  // an on-device lockout is what actually raises the bar against someone picking
+  // up the phone and guessing. After a few free misses, each further wrong try
+  // triggers an exponentially growing lockout. Persisted so a reload can't reset
+  // it, and cleared on any successful unlock.
+  const PIN_GUARD_KEY = 'anchor_pin_guard';
+  const PIN_FREE_TRIES = 4;            // misses allowed before lockouts begin
+  const PIN_BASE_LOCK  = 15000;        // first lockout: 15s, doubling each miss
+  const PIN_MAX_LOCK   = 15 * 60000;   // capped at 15 minutes
+  function _guardGet() { try { return JSON.parse(localStorage.getItem(PIN_GUARD_KEY)) || {}; } catch { return {}; } }
+  function _guardSet(g) { try { localStorage.setItem(PIN_GUARD_KEY, JSON.stringify(g)); } catch {} }
+  function _guardClear() { try { localStorage.removeItem(PIN_GUARD_KEY); } catch {} }
+  function pinLockRemaining() { const g = _guardGet(); return Math.max(0, (g.lockUntil || 0) - Date.now()); }
+  function registerPinFail() {
+    const g = _guardGet();
+    g.fails = (g.fails || 0) + 1;
+    if (g.fails > PIN_FREE_TRIES) {
+      const over = g.fails - PIN_FREE_TRIES;   // 1, 2, 3, …
+      g.lockUntil = Date.now() + Math.min(PIN_BASE_LOCK * Math.pow(2, over - 1), PIN_MAX_LOCK);
+    }
+    _guardSet(g);
+  }
+  function fmtLock(ms) { const s = Math.ceil(ms / 1000); return s < 60 ? s + 's' : Math.ceil(s / 60) + 'm'; }
+
   function frame(children) {
     const h = host(); UI.clear(h);
     h.appendChild(E('div', { class: 'rise', style: {
@@ -152,13 +177,37 @@
     const pin = E('input', { class: 'input', type: 'password', autocomplete: 'current-password', maxlength: 64, placeholder: t('auth.pwEnter'), oninput: () => UI.hapticTick() });
     const err = E('div', { class: 'tiny tac', style: { color: 'var(--bad)', minHeight: '16px', marginTop: '8px' } });
     let _busy = false;
+    const signBtn = UI.btn(t('auth.signInCta'), { class: 'btn-primary btn-lg', block: true, onClick: () => attempt() });
+    let _lockTicker = null;
+    // While locked out, disable sign-in and count the lock down live.
+    function refreshLock() {
+      if (!document.body.contains(signBtn)) { if (_lockTicker) { clearInterval(_lockTicker); _lockTicker = null; } return; }
+      const rem = hasPw ? pinLockRemaining() : 0;
+      if (rem > 0) {
+        signBtn.disabled = true;
+        err.textContent = t('auth.pwLocked', { time: fmtLock(rem) });
+        if (!_lockTicker) _lockTicker = setInterval(refreshLock, 500);
+      } else {
+        signBtn.disabled = false;
+        if (_lockTicker) { clearInterval(_lockTicker); _lockTicker = null; }
+      }
+    }
     async function attempt() {
       if (_busy) return;
       if (hasPw) {
+        if (pinLockRemaining() > 0) { UI.haptic('error'); refreshLock(); return; }
         _busy = true;
         const ok = await verifyPasscode(acct, pin.value || '');
         _busy = false;
-        if (!ok) { err.textContent = t('auth.pwWrong'); UI.haptic('error'); pin.value = ''; return; }
+        if (!ok) {
+          registerPinFail();
+          pin.value = ''; UI.haptic('error');
+          if (pinLockRemaining() > 0) refreshLock();
+          else err.textContent = t('auth.pwWrong');
+          return;
+        }
+        _guardClear();
+        if (_lockTicker) { clearInterval(_lockTicker); _lockTicker = null; }
       }
       setSignedIn(true); UI.haptic('success'); finish();
     }
@@ -172,12 +221,12 @@
       ]) : E('div', { class: 'col center', style: { marginBottom: '8px' } }, [
         E('div', { class: 'lr-ico', style: { width: '56px', height: '56px', fontSize: '1.6rem' } }, '👋'),
       ]),
-      UI.btn(t('auth.signInCta'), { class: 'btn-primary btn-lg', block: true, onClick: attempt }),
+      signBtn,
       orRow(), googleSlot(),
       E('button', { class: 'btn btn-ghost btn-block', style: { marginTop: '10px' }, onclick: () => render('signup') }, t('auth.switchToSignUp')),
       E('p', { class: 'tiny muted tac', style: { marginTop: '14px' } }, '🔒 ' + t('auth.onDevice')),
     ]);
-    if (hasPw) { setTimeout(() => pin.focus(), 250); pin.addEventListener('keydown', (e) => { if (e.key === 'Enter') attempt(); }); }
+    if (hasPw) { setTimeout(() => pin.focus(), 250); pin.addEventListener('keydown', (e) => { if (e.key === 'Enter') attempt(); }); refreshLock(); }
   }
 
   function render(mode) { if (mode === 'signin') renderSignIn(); else renderSignUp(); }
@@ -341,5 +390,16 @@
     location.reload();
   }
 
-  window.Auth = { isSignedIn, hasAccount, account, start, signOut, deleteAccount, setPersist, isPersist };
+  // Whether there's a passcode to lock behind (auto-lock only engages if so).
+  function hasLock() { return hasPasscode(account()); }
+  // Re-lock silently (no confirm dialog) — keeps ALL data, just clears the
+  // signed-in flag so the passcode gate returns. Used by the app's auto-lock.
+  // Returns true only if there was actually a passcode to lock behind.
+  function lock() {
+    if (!hasLock() || !isSignedIn()) return false;
+    setSignedIn(false);
+    return true;
+  }
+
+  window.Auth = { isSignedIn, hasAccount, account, start, signOut, deleteAccount, setPersist, isPersist, hasLock, lock };
 })();
