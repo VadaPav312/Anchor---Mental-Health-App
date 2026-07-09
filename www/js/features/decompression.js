@@ -187,95 +187,91 @@
 
   // ---- SCREEN: Step 1 — Brain dump ------------------------------------------
 
+  // Prompt: hand the whole brain dump to the AI, which splits it into the
+  // distinct thoughts and sorts each into a bucket (act / release / feel).
+  function sortPrompt(raw) {
+    return 'Someone is winding down for the night and dumped everything on their mind below. ' +
+      'Break it into the distinct thoughts they actually wrote, and sort EACH into exactly one bucket:\n' +
+      '- "act": a concrete task, to-do, or worry they could act on tomorrow\n' +
+      '- "release": something outside their control that they should set down and let go of\n' +
+      '- "feel": an emotion or feeling to simply acknowledge — no fixing needed\n\n' +
+      'Their brain dump:\n"""\n' + raw + '\n"""\n\n' +
+      'Return JSON ONLY, no prose:\n' +
+      '{ "items": [ { "text": "<one short thought, in their own words>", "bucket": "act" } ] }\n' +
+      'Rules: keep each text short and faithful to what they wrote; do NOT invent thoughts; split run-on dumps into separate items.';
+  }
+
+  // Local, offline split — one thought per line, else per sentence.
+  function splitDump(raw) {
+    let parts = raw.split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    if (parts.length <= 1) parts = raw.split(/(?:[.!?]+|;)\s+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    return parts.length ? parts : [raw];
+  }
+
   function buildStep1(state, rerender) {
     const wrap = UI.el('div', { class: 'col gap4' });
 
     // Step header
     wrap.appendChild(stepHeader(1, t('dec.step1Title'), t('dec.step1Sub'), state, rerender));
 
-    // Input card
+    const aiOn = !!(window.LLM && LLM.configured && LLM.configured());
+
+    // One big box — dump it all at once. Extra top padding so the placeholder
+    // and the text you type sit lower in the box, not jammed against the top.
     const textarea = UI.el('textarea', {
       class: 'field-input',
       placeholder: t('dec.dumpPlaceholder'),
-      rows: 3,
-      style: { width: '100%', resize: 'none', fontFamily: 'inherit', fontSize: '1rem' },
+      rows: 6,
+      style: { width: '100%', resize: 'none', fontFamily: 'inherit', fontSize: '1rem',
+        lineHeight: '1.6', padding: '18px 16px', minHeight: '164px' },
     });
     textarea.value = state.draftText || '';
+    textarea.addEventListener('input', function () { state.draftText = textarea.value; });
 
-    function addCurrentItem() {
-      const text = textarea.value.trim();
-      if (!text) return;
-      state.items.push({ text: text, bucket: null });
-      state.draftText = '';
-      textarea.value = '';
-      textarea.focus();
+    const sortBtn = UI.btn(t('dec.nextSort'), { class: 'btn-primary btn-block' });
+    let busy = false;
+    sortBtn.onclick = async function () {
+      const raw = textarea.value.trim();
+      if (!raw || busy) return;
+      busy = true;
       UI.haptic('light');
-      rerender();
-    }
+      state.draftText = raw;
 
-    textarea.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        addCurrentItem();
+      if (aiOn) {
+        sortBtn.disabled = true;
+        sortBtn.textContent = t('dec.sorting');
+        try {
+          const data = await LLM.json(sortPrompt(raw), { lang: Store.get('settings.lang'), temperature: 0.2 });
+          const valid = { act: 1, release: 1, feel: 1 };
+          let items = (data && Array.isArray(data.items) ? data.items : [])
+            .map(function (it) {
+              return { text: String((it && it.text) || '').trim(), bucket: valid[it && it.bucket] ? it.bucket : 'act' };
+            })
+            .filter(function (it) { return it.text; });
+          if (!items.length) items = splitDump(raw).map(function (tx) { return { text: tx, bucket: null }; });
+          state.items = items;
+        } catch (e) {
+          state.items = splitDump(raw).map(function (tx) { return { text: tx, bucket: null }; });
+        }
+      } else {
+        state.items = splitDump(raw).map(function (tx) { return { text: tx, bucket: null }; });
       }
-    });
-    textarea.addEventListener('input', function () {
-      state.draftText = textarea.value;
-    });
 
-    const addBtn = UI.btn(t('dec.addItem'), {
-      class: 'btn-primary',
-      onClick: addCurrentItem,
-    });
+      state.draftText = '';
+      state.sortIndex = 0;
+      state.screen = 'step2';
+      rerender();
+    };
 
     wrap.appendChild(
       UI.card([
         UI.el('div', { class: 'col gap3' }, [
           UI.el('div', { class: 'field' }, [textarea]),
-          UI.el('div', { class: 'row', style: { justifyContent: 'flex-end' } }, [addBtn]),
+          aiOn ? UI.el('div', { class: 'tiny muted', style: { textAlign: 'center', lineHeight: '1.45' } }, t('dec.sortHint')) : null,
         ]),
       ])
     );
-
-    // Growing thought list
-    if (state.items.length) {
-      const listCard = UI.card([
-        UI.el('div', { class: 'col gap2' },
-          state.items.map(function (item, idx) {
-            return UI.el('div', {
-              class: 'row between gap3 glass-card card-tight',
-              style: { padding: '10px 14px', borderRadius: 'var(--r-md)' },
-            }, [
-              UI.el('div', { class: 'grow small', style: { lineHeight: '1.5' } }, item.text),
-              UI.el('button', {
-                class: 'btn-ghost',
-                style: { padding: '2px 6px', minWidth: 'unset', opacity: '0.55', fontSize: '1rem' },
-                onclick: function () {
-                  state.items.splice(idx, 1);
-                  rerender();
-                },
-              }, [UI.frag('<span style="width:16px;height:16px;display:inline-flex">' + Icons.get('x') + '</span>')]),
-            ]);
-          })
-        ),
-      ]);
-      wrap.appendChild(listCard);
-    }
-
-    // Next button — only shown when there's at least one item
-    if (state.items.length) {
-      wrap.appendChild(
-        UI.btn(t('dec.nextSort'), {
-          class: 'btn-primary btn-block',
-          onClick: function () {
-            UI.haptic('light');
-            state.sortIndex = 0;
-            state.screen = 'step2';
-            rerender();
-          },
-        })
-      );
-    }
+    wrap.appendChild(sortBtn);
 
     return wrap;
   }
@@ -285,10 +281,13 @@
   function buildStep2(state, rerender) {
     const wrap = UI.el('div', { class: 'col gap4' });
 
-    wrap.appendChild(stepHeader(2, t('dec.step2Title'), t('dec.step2Sub'), state, rerender));
-
     const unsorted = state.items.filter(function (it) { return !it.bucket; });
     const sorted = state.items.filter(function (it) { return !!it.bucket; });
+
+    // When the AI has already sorted everything, the header reflects that
+    // instead of asking the user to tap-sort each one.
+    const sub = unsorted.length ? t('dec.step2Sub') : t('dec.step2SubSorted');
+    wrap.appendChild(stepHeader(2, t('dec.step2Title'), sub, state, rerender));
 
     // Unsorted items — show top one for sorting
     if (unsorted.length) {

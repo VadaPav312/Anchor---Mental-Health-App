@@ -144,7 +144,16 @@
 
   function removeOverlay() {
     if (ticker) { clearInterval(ticker); ticker = null; }
-    if (overlay) { overlay.style.animation = 'fade .4s reverse both'; const o = overlay; overlay = null; setTimeout(() => o.remove(), 380); }
+    if (overlay) {
+      // Smooth, eased fade so waking up melts back into the normal app behind
+      // (which is already rendered) rather than cutting out.
+      const o = overlay; overlay = null;
+      o.style.animation = 'none';
+      o.style.transition = 'opacity .6s var(--ease-in-out, ease), transform .6s var(--ease-in-out, ease)';
+      o.style.pointerEvents = 'none';
+      requestAnimationFrame(() => { o.style.opacity = '0'; o.style.transform = 'scale(1.03)'; });
+      setTimeout(() => { if (o.parentNode) o.remove(); }, 640);
+    }
   }
 
   window.Night = { start, isActive, check, end, schedule, showOverlay };

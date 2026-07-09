@@ -118,7 +118,7 @@
     const panel = el('div', { class: 'modal glass-strong' }, [
       opts.title ? el('div', { class: 'modal-title' }, opts.title) : null,
       opts.body || null,
-      opts.actions ? el('div', { class: 'row gap2 mt4', style: { justifyContent: 'flex-end' } }, opts.actions) : null,
+      opts.actions ? el('div', { class: 'row gap2 mt4', style: { justifyContent: opts.actionsAlign || 'flex-end' } }, opts.actions) : null,
     ]);
     const scrim = el('div', { class: 'scrim', onclick: () => opts.dismissable === false ? null : close() });
     host.append(scrim, panel);
@@ -132,7 +132,8 @@
     return new Promise(resolve => {
       const m = modal({
         title: opts.title || null,
-        body: el('p', { class: 'soft', style: { lineHeight: '1.5' } }, message),
+        actionsAlign: 'center',
+        body: el('p', { class: 'soft', style: { lineHeight: '1.5', textAlign: 'center' } }, message),
         actions: [
           el('button', { class: 'btn btn-ghost btn-sm', onclick: () => { m.close(); resolve(false); } }, t('app.cancel')),
           el('button', { class: 'btn btn-sm ' + (opts.danger ? 'btn-danger' : 'btn-primary'), onclick: () => { m.close(); resolve(true); } }, opts.confirmLabel || t('app.confirm')),

@@ -97,7 +97,33 @@
       ]);
     }
     function sceneJournal() { return featureScene('📓', 'sim.s6Title', 'sim.s6Sub'); }
-    function sceneSleep()   { return featureScene('🌙', 'sim.s7Title', 'sim.s7Sub'); }
+    // A few questions about last night's rest → one clear score, so the reader
+    // sees exactly what Anchor takes in and what it turns that into.
+    function sceneSleep() {
+      const q = (icon, label, ans) => E('div', { class: 'intro-sleepq' }, [
+        E('span', { class: 'intro-sleepq-ic' }, icon),
+        E('span', { class: 'intro-sleepq-l' }, label),
+        E('span', { class: 'intro-sleepq-a' }, ans),
+      ]);
+      const rows = E('div', { class: 'intro-sleepq-list' }, [
+        q('🛏️', t('sim.sleepQ1'), '7h 30m'),
+        q('😴', t('sim.sleepQ2'), '★★★★☆'),
+        q('🌡️', t('sim.sleepQ3'), '67°'),
+        q('🌑', t('sim.sleepQ4'), t('sim.sleepQ4A')),
+      ]);
+      const arrow = E('div', { class: 'intro-sleep-arrow' }, UI.frag(Icons.get('chevron')));
+      const score = E('div', { class: 'intro-sleep-score' }, [
+        E('div', { class: 'intro-sleep-num serif' }, '86'),
+        E('div', { class: 'intro-sleep-cap' }, t('sim.sleepScore')),
+      ]);
+      return E('div', { class: 'intro-scene' }, [
+        E('div', { class: 'eyebrow intro-eye' }, '🌙 ' + t('sim.s7Title')),
+        rows,
+        arrow,
+        score,
+        E('p', { class: 'soft intro-p' }, t('sim.s7Sub')),
+      ]);
+    }
     function sceneTalk()    { return featureScene('💬', 'sim.s8Title', 'sim.s8Sub'); }
     function sceneValues()  { return featureScene('🧭', 'sim.s9Title', 'sim.s9Sub'); }
     function sceneGrowth()  { return featureScene('🌱', 'sim.s10Title', 'sim.s10Sub'); }
@@ -120,18 +146,20 @@
         E('div', { class: 'serif intro-final-word' }, 'Anchor'),
       ]);
       const orbit = E('div', { class: 'intro-final-orbit' }, [ring, center]);
-      const cont = UI.btn(t('sim.continue'), { class: 'btn-primary btn-lg', block: true,
-        onClick: (e) => { e && e.stopPropagation && e.stopPropagation(); finish(done); } });
-      return E('div', { class: 'intro-scene intro-final' }, [orbit, cont]);
+      // No button — the finale plays out and hands off to the privacy screen on
+      // its own (see DWELL below).
+      return E('div', { class: 'intro-scene intro-final' }, [orbit]);
     }
 
     const SCENES = [
       sceneBrand, sceneWeather, sceneBrief, sceneInsight, sceneJournal,
       sceneSleep, sceneTalk, sceneValues, sceneGrowth, sceneCalm, sceneFinal,
     ];
-    // How long each scene lingers before it plays itself forward (ms). The final
-    // scene holds long enough for the ring to spin up and settle before auto-continuing.
-    const DWELL = [3600, 4200, 4400, 4800, 4200, 4200, 4200, 4200, 4200, 4200, 8200];
+    // How long each scene lingers before it plays itself forward (ms). Snappier
+    // pacing through the feature scenes; the final scene keeps its longer hold so
+    // the ring can spin up, the Anchor mark can fade in, and it settles before
+    // auto-continuing into the privacy screen.
+    const DWELL = [2600, 3000, 3100, 3300, 3000, 4000, 3000, 3000, 3000, 3000, 8200];
     const dots = SCENES.map(() => E('span', { class: 'intro-dot' }));
     dots.forEach(d => dotsRow.appendChild(d));
 

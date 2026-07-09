@@ -114,13 +114,31 @@ body.doodles-off .ambient-doodles { display: none; }
 .intro-final-emoji { position: absolute; top: 50%; left: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px;
   display: grid; place-items: center; font-size: 1.75rem; line-height: 1;
   filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35)); }
+/* The Anchor mark in the middle fades in a beat AFTER the ring is already
+   spinning, so the emojis gather first and the anchor arrives to anchor them. */
 .intro-final-center { position: absolute; inset: 0; z-index: 2; pointer-events: none;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  opacity: 0; animation: intro-final-reveal .9s var(--ease-out) 1.5s both; }
+@keyframes intro-final-reveal { from { opacity: 0; transform: scale(0.86); } to { opacity: 1; transform: scale(1); } }
 .intro-final-anchor { font-size: 2.7rem; line-height: 1;
   filter: drop-shadow(0 12px 26px rgba(var(--a2-rgb), 0.55)); animation: intro-mark-pulse 3.4s var(--ease-in-out) infinite; }
 .intro-final-word { font-size: 1.5rem; letter-spacing: -0.02em; line-height: 1;
   background: linear-gradient(90deg, var(--a1), var(--a2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .intro-final .btn { min-width: 220px; }
+
+/* Sleep scene — questions about last night's rest, then the score they become. */
+.intro-sleepq-list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 300px; margin: 6px auto 0; }
+.intro-sleepq { display: flex; align-items: center; gap: 10px; padding: 9px 13px; border-radius: 14px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); }
+.intro-sleepq-ic { font-size: 1.05rem; line-height: 1; flex: 0 0 auto; }
+.intro-sleepq-l { font-size: 0.86rem; color: var(--ink-soft); flex: 1 1 auto; text-align: left; }
+.intro-sleepq-a { font-size: 0.86rem; font-weight: 700; letter-spacing: -0.01em; }
+.intro-sleep-arrow { display: grid; place-items: center; color: var(--ink-ghost); margin: 4px 0; }
+.intro-sleep-arrow svg { width: 20px; height: 20px; transform: rotate(90deg); stroke: currentColor; }
+.intro-sleep-score { display: flex; flex-direction: column; align-items: center; }
+.intro-sleep-num { font-size: 3rem; line-height: 1; letter-spacing: -0.02em;
+  background: linear-gradient(90deg, var(--a1), var(--a2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.intro-sleep-cap { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); margin-top: 2px; }
 
 .intro-skip {
   position: absolute; top: calc(var(--safe-t) + 14px); right: 18px; z-index: 3;
@@ -181,6 +199,7 @@ body.doodles-off .ambient-doodles { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .intro-orb, .intro-mark, .intro-wx-ring, .intro-featmark,
   .intro-final-ring, .intro-final-anchor { animation: none; }
+  .intro-final-center { animation: none; opacity: 1; }
   .intro-enter > * { animation-duration: .01ms; }
 }
 
@@ -492,7 +511,6 @@ body.theme-daylight .intro-scrim { background: rgba(214, 220, 240, 0.55); }
 body.scrolled .nav-crumb { opacity: 1; transform: translateX(-50%) translateY(0); }
 body.scrolled .brand { opacity: 0; transform: translateX(-6px); transition: opacity var(--dur), transform var(--dur); }
 .brand { transition: opacity var(--dur), transform var(--dur); }
-body.scrolled .page-head .page-title { transform: scale(0.94); transform-origin: left; transition: transform var(--dur) var(--ease-out); }
 .page-head { transition: opacity var(--dur); }
 
 /* ---------------------------------------------------------------------------
