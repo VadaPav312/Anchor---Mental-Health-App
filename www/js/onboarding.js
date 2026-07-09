@@ -267,7 +267,6 @@
       UI.el('h1', { class: 'serif', style: { fontSize: '2.3rem', textAlign: 'center', marginBottom: '12px' } }, t('onb.ready')),
       UI.el('p', { class: 'soft tac', style: { lineHeight: '1.55', marginBottom: '26px' } }, t('onb.readySub')),
       UI.btn(t('onb.enter'), { class: 'btn-primary btn-lg', block: true, onClick: () => finish() }),
-      UI.el('p', { class: 'tiny muted tac', style: { marginTop: '14px', lineHeight: '1.5' } }, t('onb.privacySub')),
     ]);
   }
 

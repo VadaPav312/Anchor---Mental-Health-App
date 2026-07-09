@@ -183,7 +183,6 @@ I18N.register('en', {
     nameSub: 'Just a first name or a nickname — this stays on your device.',
     namePlaceholder: 'Your name',
     privacyTitle: 'Your story stays yours',
-    privacySub: 'Everything you log lives on this device. Nothing is sent anywhere except the words you choose to send for AI reflection.',
     privacyOnDevice: 'Stored on-device',
     privacyNoAccount: 'No account needed',
     privacyExport: 'Export or erase anytime',
