@@ -70,7 +70,7 @@
   let introStep = 0;
 
   function dots(total, active) {
-    return UI.el('div', { class: 'row center gap2', style: { margin: '4px 0 0' } },
+    return UI.el('div', { class: 'row center gap2', style: { margin: '20px 0 0' } },
       Array.from({ length: total }, function (_, i) {
         return UI.el('span', { style: {
           width: i === active ? '22px' : '7px', height: '7px', borderRadius: '999px',
