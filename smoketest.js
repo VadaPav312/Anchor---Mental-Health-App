@@ -1,5 +1,6 @@
-// Headless runtime smoke test: boot the real Anchor app in jsdom, seed demo
-// data, then render EVERY registered view and assert no runtime errors.
+// Headless runtime smoke test: boot the real Anchor app in jsdom, seed a few
+// weeks of data via the Store API, then render EVERY registered view and assert
+// no runtime errors.
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
@@ -50,10 +51,22 @@ setTimeout(() => {
     out.push('languages registered: ' + w.I18N.LANGUAGES.length);
     out.push('views registered: ' + w.Anchor.views.length + ' -> ' + w.Anchor.views.map(v => v.id).join(','));
 
-    // Force-complete onboarding with demo data, then start the app.
+    // Force-complete onboarding, then seed ~3 weeks of correlated data via the
+    // real Store API (the standalone Seed demo module was removed).
     w.Store.profile.update({ name: 'Test', onboarded: true, createdAt: Date.now() });
     w.Store.values.set([{ id: 'presence', name: 'Being present', why: '' }, { id: 'connection', name: 'Connection', why: '' }]);
-    w.Seed.apply();
+    const DAY = 86400000, NOW = Date.now();
+    for (let i = 20; i >= 0; i--) {
+      const date = new Date(NOW - i * DAY).toISOString().slice(0, 10);
+      // sleep drives mood/energy so Pattern Detective has a real correlation to find
+      const dur = 360 + (i % 6) * 30;                 // 6h–8.5h
+      const good = dur > 450;
+      const valence = good ? 1 + (i % 2) : -1 + (i % 2);
+      w.Store.sleep.add({ date, durationMin: dur, score: 45 + (dur - 360) / 3, tempF: 66 + (i % 3), humidity: 45, lightLux: 2, noiseDb: 30, awakenings: good ? 0 : 2, restful: good ? 8 : 4, envScore: 70, source: 'manual' });
+      w.Store.moods.add({ date, valence, energy: 5 + valence, arousal: 5, note: i % 4 ? '' : 'reflecting', tags: [], weather: 'clear' });
+      w.Store.journal.add({ date, text: i % 2 ? 'A few honest lines about the day.' : '' });
+      w.Store.energy.add({ date, net: valence, gain: 3, drain: 3 - valence });
+    }
     out.push('after seed -> moods:' + w.Store.moods.count() + ' sleep:' + w.Store.sleep.count() + ' journal:' + w.Store.journal.count() + ' energy:' + w.Store.energy.count());
 
     // Pattern Detective should find correlations in the seeded data.
