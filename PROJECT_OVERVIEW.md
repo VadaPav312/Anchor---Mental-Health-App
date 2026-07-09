@@ -418,10 +418,12 @@ the app before the user starts with their own real data.
 walking through what Anchor does across many auto-advancing scenes — brand, "your
 inner weather," a private morning briefing, "patterns, connected," a private
 journal, "rest, understood," "someone to talk to," "steered by your values,"
-"watch yourself grow," a calm toolkit, and "entirely yours" — on the user's chosen
-accent palette so it matches the app's color look. It is fully skippable,
-remembered so it only shows once (`settings.introSeen`), and **crossfades smoothly
-into the privacy screen** when it ends.
+"watch yourself grow," and a calm toolkit — on the user's chosen accent palette so
+it matches the app's color look. The **finale** rings every scene's emoji around
+the Anchor mark: they sit still, then spin up, decelerate and settle, with a
+**Continue** button underneath. It is fully skippable, remembered so it only shows
+once (`settings.introSeen`), and **crossfades smoothly into the privacy screen**
+when it ends.
 
 ---
 

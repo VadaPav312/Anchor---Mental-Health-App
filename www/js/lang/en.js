@@ -43,6 +43,7 @@ I18N.register('en', {
     s9Sub: 'Choose what matters most, and let it quietly shape every day and every reflection.',
     s10Title: 'Watch yourself grow',
     s10Sub: 'Streaks, wins and gentle progress reflections that celebrate how far you have come.',
+    continue: 'Continue',
     cta: 'Get started',
   },
 

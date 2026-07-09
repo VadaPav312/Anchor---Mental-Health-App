@@ -4,9 +4,10 @@
 // to scene automatically, no taps to continue — walking through what Anchor
 // does across many scenes (inner weather → a private morning briefing →
 // connected patterns → private journal → sleep, understood → someone to talk
-// to → steered by your values → a calm toolkit → private-by-design). When it
-// ends it crossfades smoothly into the privacy screen. Skippable; shown once
-// ('settings.introSeen').
+// to → steered by your values → watch yourself grow → a calm toolkit). The
+// finale rings every scene's emoji around the Anchor mark — they spin up, slow,
+// and settle — with a Continue button underneath. When it ends it crossfades
+// smoothly into the privacy screen. Skippable; shown once ('settings.introSeen').
 //
 //   Intro.shouldShow()  -> bool   (first launch, not yet seen, not onboarded)
 //   Intro.play(done)    -> plays the cinematic, then calls done()
@@ -101,22 +102,36 @@
     function sceneValues()  { return featureScene('🧭', 'sim.s9Title', 'sim.s9Sub'); }
     function sceneGrowth()  { return featureScene('🌱', 'sim.s10Title', 'sim.s10Sub'); }
     function sceneCalm()    { return featureScene('🧘', 'sim.s5Title', 'sim.s5Sub'); }
-    function scenePrivate() {
-      return E('div', { class: 'intro-scene' }, [
-        E('div', { class: 'intro-lock' }, '🔒'),
-        E('h2', { class: 'serif intro-h' }, t('sim.s3Title')),
-        E('p', { class: 'soft intro-p' }, t('sim.s3Sub')),
-        UI.btn(t('sim.cta'), { class: 'btn-primary btn-lg', block: true,
-          onClick: (e) => { e && e.stopPropagation && e.stopPropagation(); finish(done); } }),
+
+    // Finale — the previous scenes' emojis ring around the Anchor mark. They sit
+    // still for a beat, then the ring spins up (accelerating), slows, and settles.
+    // Underneath, a "Continue" button carries on into the privacy screen.
+    function sceneFinal() {
+      const EMOJIS = ['🌤️', '☀️', '🔗', '📓', '🌙', '💬', '🧭', '🌱', '🧘'];  // one per prior scene
+      const ring = E('div', { class: 'intro-final-ring spin' });
+      EMOJIS.forEach((em, idx) => {
+        const ang = idx * 360 / EMOJIS.length;
+        ring.appendChild(E('div', { class: 'intro-final-emoji', style: {
+          transform: 'rotate(' + ang + 'deg) translateY(calc(var(--orbit-r) * -1)) rotate(' + (-ang) + 'deg)',
+        } }, em));
+      });
+      const center = E('div', { class: 'intro-final-center' }, [
+        E('div', { class: 'intro-final-anchor' }, '⚓'),
+        E('div', { class: 'serif intro-final-word' }, 'Anchor'),
       ]);
+      const orbit = E('div', { class: 'intro-final-orbit' }, [ring, center]);
+      const cont = UI.btn(t('sim.continue'), { class: 'btn-primary btn-lg', block: true,
+        onClick: (e) => { e && e.stopPropagation && e.stopPropagation(); finish(done); } });
+      return E('div', { class: 'intro-scene intro-final' }, [orbit, cont]);
     }
 
     const SCENES = [
       sceneBrand, sceneWeather, sceneBrief, sceneInsight, sceneJournal,
-      sceneSleep, sceneTalk, sceneValues, sceneGrowth, sceneCalm, scenePrivate,
+      sceneSleep, sceneTalk, sceneValues, sceneGrowth, sceneCalm, sceneFinal,
     ];
-    // How long each scene lingers before it plays itself forward (ms).
-    const DWELL = [3600, 4200, 4400, 4800, 4200, 4200, 4200, 4200, 4200, 4200, 6000];
+    // How long each scene lingers before it plays itself forward (ms). The final
+    // scene holds long enough for the ring to spin up and settle before auto-continuing.
+    const DWELL = [3600, 4200, 4400, 4800, 4200, 4200, 4200, 4200, 4200, 4200, 8200];
     const dots = SCENES.map(() => E('span', { class: 'intro-dot' }));
     dots.forEach(d => dotsRow.appendChild(d));
 
