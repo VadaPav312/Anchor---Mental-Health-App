@@ -93,11 +93,12 @@
   // 1 — name
   function name() {
     const input = UI.el('input', { class: 'input', placeholder: t('onb.namePlaceholder'), value: draft.name, maxlength: 40,
+      style: { textAlign: 'center' },
       oninput: e => draft.name = e.target.value });
     frame([
       dots(NDOTS, 0),
-      UI.el('h2', { class: 'serif', style: { fontSize: '1.9rem', marginBottom: '8px' } }, t('onb.nameTitle')),
-      UI.el('p', { class: 'soft', style: { marginBottom: '22px', lineHeight: '1.5' } }, t('onb.nameSub')),
+      UI.el('h2', { class: 'serif', style: { fontSize: '1.9rem', marginBottom: '8px', textAlign: 'center' } }, t('onb.nameTitle')),
+      UI.el('p', { class: 'soft', style: { marginBottom: '22px', lineHeight: '1.5', textAlign: 'center' } }, t('onb.nameSub')),
       UI.el('div', { class: 'glass-card card' }, [input]),
       UI.el('div', { class: 'row between gap3', style: { marginTop: '24px' } }, [
         UI.btn(t('app.back'), { class: 'btn-ghost', onClick: () => go(0) }),
@@ -132,8 +133,8 @@
     });
     frame([
       dots(NDOTS, 1),
-      UI.el('h2', { class: 'serif', style: { fontSize: '1.9rem', marginBottom: '8px' } }, t('onb.colorTitle')),
-      UI.el('p', { class: 'soft', style: { marginBottom: '20px', lineHeight: '1.5' } }, t('onb.colorSub')),
+      UI.el('h2', { class: 'serif', style: { fontSize: '1.9rem', marginBottom: '8px', textAlign: 'center' } }, t('onb.colorTitle')),
+      UI.el('p', { class: 'soft', style: { marginBottom: '20px', lineHeight: '1.5', textAlign: 'center' } }, t('onb.colorSub')),
       UI.el('div', { class: 'glass-card card' }, [grid]),
       UI.el('div', { class: 'row between gap3', style: { marginTop: '24px' } }, [
         UI.btn(t('app.back'), { class: 'btn-ghost', onClick: () => go(1) }),
@@ -174,8 +175,8 @@
       } } });
     frame([
       dots(NDOTS, 2),
-      UI.el('h2', { class: 'serif', style: { fontSize: '1.9rem', marginBottom: '8px' } }, t('onb.valuesTitle')),
-      UI.el('p', { class: 'soft', style: { marginBottom: '20px', lineHeight: '1.5' } }, t('onb.valuesSub')),
+      UI.el('h2', { class: 'serif', style: { fontSize: '1.9rem', marginBottom: '8px', textAlign: 'center' } }, t('onb.valuesTitle')),
+      UI.el('p', { class: 'soft', style: { marginBottom: '20px', lineHeight: '1.5', textAlign: 'center' } }, t('onb.valuesSub')),
       UI.el('div', { class: 'glass-card card' }, [grid, custom]),
       UI.el('div', { class: 'row between gap3', style: { marginTop: '24px' } }, [
         UI.btn(t('app.back'), { class: 'btn-ghost', onClick: () => go(2) }),
