@@ -139,6 +139,10 @@
         const ang = idx * 360 / EMOJIS.length;
         ring.appendChild(E('div', { class: 'intro-final-emoji', style: {
           transform: 'rotate(' + ang + 'deg) translateY(calc(var(--orbit-r) * -1)) rotate(' + (-ang) + 'deg)',
+          // staggered so the emojis gather in one by one around the ring; the
+          // fade is opacity-only (a keyframe can't touch transform without
+          // wiping the positioning transform above)
+          animationDelay: (0.15 + idx * 0.11).toFixed(2) + 's',
         } }, em));
       });
       const center = E('div', { class: 'intro-final-center' }, [
