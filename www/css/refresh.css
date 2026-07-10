@@ -15,6 +15,21 @@
 /* Calm, well-spaced line-art that BLENDS into the backdrop. A radial mask fades
    the art out of the centre (where the app's content column lives) so nothing
    sits behind the main content — only a subtle whisper of art around the edges. */
+/* Ambient ART — large, soft flowing contours + ripple rings tinted with the
+   accent colour, sitting a shade deeper than the backdrop so it reads as quiet
+   tone-on-tone art: moderately present, never competing with content. The SVG
+   is used as a MASK filled by the accent gradient, so it always matches the
+   user's chosen palette. Fades out of the centre where the content column sits. */
+.ambient-art {
+  position: absolute; inset: 0; pointer-events: none;
+  opacity: 0.17;
+  background: linear-gradient(135deg, rgba(var(--a1-rgb), 1), rgba(var(--a2-rgb), 1) 55%, rgba(var(--a3-rgb, var(--a2-rgb)), 1));
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000' viewBox='0 0 1000 1000' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M-20 210 C 180 150 320 270 520 210 S 860 150 1020 220'/%3E%3Cpath d='M-20 370 C 160 320 340 430 540 360 S 880 320 1020 380'/%3E%3Cpath d='M-20 540 C 180 480 320 610 520 540 S 860 500 1020 560'/%3E%3Cpath d='M-20 700 C 160 650 360 770 540 700 S 880 660 1020 720'/%3E%3Cpath d='M-20 860 C 180 810 320 930 520 860 S 860 820 1020 880'/%3E%3Ccircle cx='170' cy='180' r='42'/%3E%3Ccircle cx='170' cy='180' r='78'/%3E%3Ccircle cx='170' cy='180' r='116'/%3E%3Ccircle cx='840' cy='830' r='42'/%3E%3Ccircle cx='840' cy='830' r='78'/%3E%3Ccircle cx='840' cy='830' r='116'/%3E%3Ccircle cx='500' cy='120' r='3' fill='white' stroke='none'/%3E%3Ccircle cx='300' cy='620' r='3' fill='white' stroke='none'/%3E%3Ccircle cx='720' cy='300' r='3' fill='white' stroke='none'/%3E%3Ccircle cx='620' cy='760' r='3' fill='white' stroke='none'/%3E%3C/svg%3E") center / cover no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000' viewBox='0 0 1000 1000' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M-20 210 C 180 150 320 270 520 210 S 860 150 1020 220'/%3E%3Cpath d='M-20 370 C 160 320 340 430 540 360 S 880 320 1020 380'/%3E%3Cpath d='M-20 540 C 180 480 320 610 520 540 S 860 500 1020 560'/%3E%3Cpath d='M-20 700 C 160 650 360 770 540 700 S 880 660 1020 720'/%3E%3Cpath d='M-20 860 C 180 810 320 930 520 860 S 860 820 1020 880'/%3E%3Ccircle cx='170' cy='180' r='42'/%3E%3Ccircle cx='170' cy='180' r='78'/%3E%3Ccircle cx='170' cy='180' r='116'/%3E%3Ccircle cx='840' cy='830' r='42'/%3E%3Ccircle cx='840' cy='830' r='78'/%3E%3Ccircle cx='840' cy='830' r='116'/%3E%3Ccircle cx='500' cy='120' r='3' fill='white' stroke='none'/%3E%3Ccircle cx='300' cy='620' r='3' fill='white' stroke='none'/%3E%3Ccircle cx='720' cy='300' r='3' fill='white' stroke='none'/%3E%3Ccircle cx='620' cy='760' r='3' fill='white' stroke='none'/%3E%3C/svg%3E") center / cover no-repeat;
+}
+body.theme-daylight .ambient-art { mix-blend-mode: multiply; opacity: 0.14; }
+body.doodles-off .ambient-art, body.bg-plain .ambient-art { display: none; }
+
 .ambient-doodles {
   position: absolute; inset: 0; pointer-events: none;
   opacity: 0.10; mix-blend-mode: screen;
