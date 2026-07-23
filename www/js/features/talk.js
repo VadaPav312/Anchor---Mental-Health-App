@@ -67,7 +67,9 @@
   function sttOK() { return !!(window.Speech && Speech.sttSupported()); }
   function ttsOK() { return !!(window.Speech && Speech.ttsSupported()); }
   function wantsSpeak() {
-    if (speakReplies == null) speakReplies = Store.get('settings.tts', true) !== false;
+    // Read-aloud starts OFF every time the chat is opened — the user turns it on
+    // deliberately via the footer toggle. (It's a conversation, not a broadcast.)
+    if (speakReplies == null) speakReplies = false;
     return speakReplies && ttsOK();
   }
   function reduceMotion() {
@@ -400,6 +402,7 @@
     clearReveals();
     removeThinking();
     state = 'idle';
+    speakReplies = null;   // next open of the chat starts with read-aloud OFF
   }
 
   // ---- render ---------------------------------------------------------------

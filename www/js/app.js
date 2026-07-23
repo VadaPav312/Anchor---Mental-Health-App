@@ -169,14 +169,20 @@
 
     host.appendChild(UI.el('div', { class: 'navmenu-scrim', onclick: closeNav }));
     const bloom = UI.el('div', { class: 'navbloom' });
-    // fan items across an upper arc, centered on straight-up (90°). Wider gaps +
-    // smaller boxes so adjacent labels/icons never overlap.
-    const span = Math.min(150, 44 + N * 20);   // ≤150° so side items stay on-screen
-    const a0 = 90 + span / 2, a1 = 90 - span / 2;
-    const stepRad = (span / Math.max(N - 1, 1)) * Math.PI / 360;
-    // Bigger radius so a fuller ring (now incl. the Talk chatbot) never crowds —
-    // adjacent icons/labels keep clear air between them.
-    const R = Math.max(122, Math.min(152, Math.round(92 / (2 * Math.sin(stepRad || 0.3)))));
+    // Fan items across an upper arc centred on straight-up (90°). We compute the
+    // LARGEST radius the viewport allows so the ring opens up and no label ever
+    // sits on top of a neighbouring icon. The outermost items are kept fully
+    // on-screen horizontally, and the top item kept off the ceiling.
+    const span = Math.min(168, 52 + N * 16);          // degrees of the fan
+    const a0 = 90 + span / 2, a1 = 90 - span / 2;     // start/end angles
+    const minAngleRad = a1 * Math.PI / 180;           // the most horizontal item
+    const vw = Math.min(window.innerWidth || 390, 560);
+    const vh = window.innerHeight || 760;
+    // radius that keeps side items on-screen (label half-width ≈ 40 + margin)
+    const rByWidth = (vw / 2 - 50) / Math.max(Math.cos(minAngleRad), 0.05);
+    const rByHeight = vh - 220;                        // keep the top item visible
+    // Noticeably larger than before (old cap was 152); grows on roomier screens.
+    const R = Math.round(Math.max(158, Math.min(rByWidth, rByHeight, 250)));
     items.forEach((v, i) => {
       const ang = (N === 1 ? 90 : a0 + (a1 - a0) * (i / (N - 1))) * Math.PI / 180;
       const bx = Math.cos(ang) * R, by = -Math.sin(ang) * R;

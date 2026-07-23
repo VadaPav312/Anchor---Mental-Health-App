@@ -456,7 +456,8 @@ body.density-spacious .page { gap: var(--s5); }
   flex: 0 0 auto; align-self: center; position: relative;
   width: 56px; height: 56px; border-radius: 50%; margin: 0 4px;
   display: grid; place-items: center; color: #fff;
-  background: linear-gradient(135deg, var(--a1), var(--a2));
+  /* full-palette sweep so the orb unmistakably reflects the chosen colour */
+  background: linear-gradient(135deg, var(--a1), var(--a2) 52%, var(--a3));
   border: 1px solid rgba(255, 255, 255, 0.42);
   box-shadow: 0 10px 26px -8px rgba(var(--a2-rgb), 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   transition: transform var(--dur) var(--ease-spring), box-shadow var(--dur);
@@ -495,7 +496,10 @@ body.theme-daylight .navmenu-scrim { background: rgba(214, 220, 240, 0.55); }
   transform: translate(-50%, -50%) translate(var(--bx), var(--by)) scale(1.08); z-index: 2;
 }
 .nb-ico {
-  width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; color: var(--ink);
+  width: 46px; height: 46px; border-radius: 16px; display: grid; place-items: center;
+  /* resting icons carry a faint tint of the chosen accent so the whole bloom
+     reads as "the user's colour", not neutral grey */
+  color: rgb(var(--a1-rgb));
   background: var(--glass-bg-strong);
   backdrop-filter: blur(var(--blur)) saturate(170%); -webkit-backdrop-filter: blur(var(--blur)) saturate(170%);
   border: 1px solid var(--glass-stroke);
@@ -509,9 +513,13 @@ body.theme-daylight .navmenu-scrim { background: rgba(214, 220, 240, 0.55); }
 }
 .navbloom-item:active .nb-ico { transform: scale(0.9); }
 .nb-lbl {
-  font-size: 0.68rem; font-weight: 600; color: var(--ink); white-space: nowrap;
-  max-width: 80px; overflow: hidden; text-overflow: ellipsis; text-align: center;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65); letter-spacing: -0.01em;
+  font-size: 0.66rem; font-weight: 600; color: var(--ink); text-align: center;
+  /* wrap to at most two tight lines and cap the width so a long label can
+     never spill sideways over a neighbouring icon */
+  max-width: 62px; line-height: 1.05; letter-spacing: -0.01em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; overflow-wrap: break-word; word-break: break-word;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
 }
 .navbloom-item { gap: 5px; }
 body.theme-daylight .nb-lbl { text-shadow: 0 1px 6px rgba(255, 255, 255, 0.8); }

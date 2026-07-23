@@ -165,22 +165,39 @@
       ]);
       return b;
     }
+    // Take whatever the user typed and make it a first-class value — even if it
+    // isn't a suggested chip, and even if they never pressed Enter. Supports
+    // several at once ("faith, honesty, family"); skips blanks and duplicates.
+    // Once here they live in draft.values and are stored + used exactly like
+    // the built-in ones (chat, briefing, values compass, the analysis engine).
+    function commitCustom(raw) {
+      let added = 0;
+      String(raw || '').split(',').map(s => s.trim()).filter(Boolean).forEach(nm => {
+        const dup = draft.values.some(v => (v.name || '').toLowerCase() === nm.toLowerCase());
+        if (dup) return;
+        const id = 'custom-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+        const v = { id, name: nm, emoji: '✨' };
+        selected.add(id);
+        draft.values.push({ id, name: nm, why: '', target: 4 });
+        const b = box(v, true); b.classList.add('active'); grid.appendChild(b);
+        added++;
+      });
+      return added;
+    }
     VALUE_SUGGESTIONS.forEach(v => grid.appendChild(box(v)));
     const custom = UI.el('input', { class: 'input', placeholder: t('onb.valuesCustom'), style: { marginTop: '12px' },
-      onkeydown: e => { if (e.key === 'Enter' && e.target.value.trim()) {
-        const nm = e.target.value.trim(); const id = 'custom-' + Date.now();
-        const v = { id, name: nm, emoji: '✨' }; selected.add(id);
-        draft.values.push({ id, name: nm, why: '', target: 4 });
-        const b = box(v, true); b.classList.add('active'); grid.appendChild(b); e.target.value = '';
-      } } });
+      onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); if (commitCustom(e.target.value)) { e.target.value = ''; UI.haptic('light'); } } } });
+    // Committing any pending text on navigation is the key: tapping Next/Back
+    // must never silently drop a value the user took the trouble to type.
+    const proceed = (n) => { commitCustom(custom.value); custom.value = ''; go(n); };
     frame([
       dots(NDOTS, 2),
       UI.el('h2', { class: 'serif', style: { fontSize: '1.9rem', marginBottom: '8px', textAlign: 'center' } }, t('onb.valuesTitle')),
       UI.el('p', { class: 'soft', style: { marginBottom: '20px', lineHeight: '1.5', textAlign: 'center' } }, t('onb.valuesSub')),
       UI.el('div', { class: 'glass-card card' }, [grid, custom]),
       UI.el('div', { class: 'row between gap3', style: { marginTop: '24px' } }, [
-        UI.btn(t('app.back'), { class: 'btn-ghost', onClick: () => go(2) }),
-        UI.btn(t('app.next'), { class: 'btn-primary grow', onClick: () => go(4) }),
+        UI.btn(t('app.back'), { class: 'btn-ghost', onClick: () => proceed(2) }),
+        UI.btn(t('app.next'), { class: 'btn-primary grow', onClick: () => proceed(4) }),
       ]),
     ]);
   }
