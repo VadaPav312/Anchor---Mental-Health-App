@@ -34,7 +34,42 @@
     return isDay && (cond === 'clear' || cond === 'sunny') && tempC >= 8 && tempC <= 30;
   }
 
+  // WKWebView (native iOS) does NOT implement navigator.geolocation, so on native
+  // we go through the Capacitor Geolocation plugin — which bridges to CLLocation
+  // and drives the real iOS permission prompt (NSLocationWhenInUseUsageDescription
+  // in Info.plist). On the web we use the standard browser API. Both resolve to a
+  // { latitude, longitude } coords object.
+  function isNative() {
+    return !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+  }
+  function geoPlugin() {
+    return window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Geolocation;
+  }
+
+  async function nativePosition() {
+    const Geo = geoPlugin();
+    if (!Geo) throw new Error('no-geo');
+    // Ask for permission first so a prior "denied" surfaces as a clean rejection
+    // rather than a silent hang. checkPermissions/requestPermissions are optional
+    // on some versions, so guard each call.
+    try {
+      if (Geo.checkPermissions) {
+        const cur = await Geo.checkPermissions();
+        const state = cur && (cur.location || cur.coarseLocation);
+        if (state !== 'granted' && Geo.requestPermissions) {
+          const req = await Geo.requestPermissions();
+          const got = req && (req.location || req.coarseLocation);
+          if (got !== 'granted') throw new Error('denied');
+        }
+      }
+    } catch (e) { if (e && e.message === 'denied') throw e; /* else fall through and try anyway */ }
+    const pos = await Geo.getCurrentPosition({ enableHighAccuracy: false, timeout: 8000, maximumAge: 10 * 60 * 1000 });
+    if (!pos || !pos.coords) throw new Error('no-fix');
+    return pos.coords;
+  }
+
   function position() {
+    if (isNative() && geoPlugin()) return nativePosition();
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) return reject(new Error('no-geo'));
       navigator.geolocation.getCurrentPosition(
