@@ -241,6 +241,28 @@
     if (window.App && App.startApp) { App.hideChrome(false); App.startApp(); }
   }
 
+  // Finish a Google sign-in. If serverless sync is configured (Cloud.enabled),
+  // exchange the Google token for a Firebase session and reconcile this device
+  // with the account's cloud data BEFORE booting — so the same Google account
+  // shows the same data on every computer. Cloud steps are best-effort: any
+  // failure still signs the user in locally (the on-device app never breaks).
+  async function completeGoogleSignIn(name, email, tokens) {
+    Store.profile.update({ account: { name, email: email || '', pin: '', google: true }, name });
+    if (window.Cloud && Cloud.enabled() && tokens && (tokens.idToken || tokens.accessToken)) {
+      let toastShown = false;
+      try {
+        try { UI.toast(t('google.syncing'), 'good'); toastShown = true; } catch {}
+        const user = await Cloud.signInWithGoogleToken(tokens);
+        await Cloud.linkAndSync(user);
+        try { UI.toast(t('google.synced'), 'good'); } catch {}
+      } catch (e) {
+        console.warn('cloud sync unavailable; continuing on-device', e);
+        if (toastShown) { try { UI.toast(t('google.syncOffline'), 'bad'); } catch {} }
+      }
+    }
+    setSignedIn(true); UI.haptic('success'); finish();
+  }
+
   // ---- "Continue with Google" via Google Identity Services ----
   // Works on web origins authorized in the Google/Firebase console; on other
   // origins (e.g. a raw Capacitor webview) it simply doesn't render — the
@@ -295,8 +317,7 @@
       const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + resp.access_token } });
       if (r.ok) { const p = await r.json(); nm = p.name || p.given_name || nm; email = p.email || ''; }
     } catch (e) { console.warn('userinfo lookup failed; signing in anyway', e); }
-    Store.profile.update({ account: { name: nm, email, pin: '', google: true }, name: nm });
-    setSignedIn(true); UI.haptic('success'); finish();
+    await completeGoogleSignIn(nm, email, { accessToken: resp.access_token });
   }
   function isNative() { return !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()); }
   function socialPlugin() { return window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.SocialLogin; }
@@ -311,10 +332,14 @@
     try {
       await SL.initialize({ google: { iOSClientId: CONFIG.googleIOSClientId, webClientId: CONFIG.firebaseClientId } });
       const r = await SL.login({ provider: 'google', options: { scopes: ['email', 'profile'] } });
-      const p = (r && r.result && (r.result.profile || r.result)) || {};
+      const res = (r && r.result) || {};
+      const p = res.profile || res || {};
       const nm = p.name || p.displayName || p.givenName || p.given_name || 'You';
-      Store.profile.update({ account: { name: nm, email: p.email || '', pin: '', google: true }, name: nm });
-      setSignedIn(true); UI.haptic('success'); finish();
+      // capgo returns an idToken (JWT) and an accessToken (sometimes wrapped in
+      // an object) — either lets Firebase mint a matching session.
+      const idToken = res.idToken || p.idToken || null;
+      const accessToken = (res.accessToken && (res.accessToken.token || res.accessToken)) || p.accessToken || null;
+      await completeGoogleSignIn(nm, p.email || '', { idToken, accessToken });
     } catch (e) { UI.toast(t('google.failed'), 'bad'); if (btn) { btn.disabled = false; if (labelNode) labelNode.textContent = old; } }
   }
 
@@ -369,6 +394,8 @@
     const ok = await UI.confirm(t('auth.signOutConfirm'), { confirmLabel: t('auth.signOut') });
     if (!ok) return;
     setSignedIn(false);
+    // Detach cloud sync and end the Firebase session (best-effort).
+    try { if (window.Cloud && Cloud.isSyncing()) Cloud.signOut(); } catch {}
     // Make sure Google won't silently re-link the previous account next time.
     try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch {}
     // Drop user-specific reminders; general "we miss you" nudges keep going.
@@ -384,6 +411,9 @@
     const ok = await UI.confirm(t('auth.deleteConfirm'), { danger: true, confirmLabel: t('auth.deleteAccount') });
     if (!ok) return;
     setSignedIn(false);
+    // Stop cloud sync FIRST so wiping local data doesn't get mirrored up and
+    // erase the account's cloud copy on other devices.
+    try { if (window.Cloud && Cloud.isSyncing()) Cloud.signOut(); } catch {}
     Store.reset();
     try { localStorage.removeItem('anchor_lang'); } catch {}
     UI.toast(t('auth.deleted'), 'good');

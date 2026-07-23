@@ -21,4 +21,23 @@ window.CONFIG = {
   // REVERSED form as a URL scheme in ios/App/App/Info.plist (see the placeholder
   // there). Until both are set, native Google sign-in stays hidden/graceful.
   googleIOSClientId: '627695329462-t142vqaambtmekorfrbon4k016kifgsf.apps.googleusercontent.com',
+
+  // ---- OPTIONAL: serverless cross-device account sync (Firebase) -----------
+  // Fill this in to make "Sign in with Google" carry your data across every
+  // computer/phone that signs into the same Google account. Leave it blank and
+  // the app stays 100% on-device exactly as before. These values are NOT secret
+  // — a Firebase web config (apiKey included) is designed to ship in the client;
+  // your data is protected by Firestore security rules, not by hiding this.
+  //
+  // Where to get it: Firebase console → Project settings → General → "Your apps"
+  // → the Web app → "SDK setup and configuration" → Config. See CLOUD_SYNC.md
+  // for the full one-time setup (enable Google sign-in + Firestore + rules).
+  firebaseConfig: {
+    apiKey: '',              // e.g. 'AIzaSy...'
+    authDomain: '',          // e.g. 'your-project.firebaseapp.com'
+    projectId: '',           // e.g. 'your-project'
+    storageBucket: '',       // e.g. 'your-project.appspot.com'
+    messagingSenderId: '',   // e.g. '627695329462'
+    appId: '',               // e.g. '1:627695329462:web:abc123'
+  },
 };

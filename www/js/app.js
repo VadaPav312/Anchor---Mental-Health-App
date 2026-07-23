@@ -455,6 +455,11 @@
     applyTheme();
     applyWeatherTint();
     Native.init();
+    // If this account is Google-linked and serverless sync is configured,
+    // reattach to the account's cloud data (Firebase restores the session).
+    if (window.Cloud && Cloud.enabled() && Store.get('profile.account.google')) {
+      try { Cloud.resume(); } catch (e) { console.warn('cloud resume failed', e); }
+    }
     // Keep general "we miss you" nudges scheduled even before/without sign-in.
     // (User-specific reminders are gated inside syncReminders by sign-in state.)
     Native.syncReminders && Native.syncReminders();

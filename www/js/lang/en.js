@@ -694,6 +694,7 @@ I18N.register('en', {
 
   google: {
     signIn: 'Continue with Google', signingIn: 'Connecting to Google…', failed: 'Google sign-in unavailable here',
+    syncing: 'Syncing your account…', synced: 'Account synced across your devices', syncOffline: 'Signed in — sync unavailable right now',
   },
 
   // friendly labels for raw metrics, used in the cause → effect insight thread
