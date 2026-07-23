@@ -3,6 +3,7 @@
   "version": "1.2.6",
   "description": "Anchor — a mental-wellness companion. Compounding, deeply personal insight that reflects you back to yourself.",
   "scripts": {
+    "test": "node smoketest.js",
     "deploy": "npx cap sync ios",
     "ios": "npx cap sync ios && npx cap open ios",
     "wire-google": "node scripts/wire-google.js"
@@ -31,5 +32,8 @@
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
     "@capgo/capacitor-social-login": "^8.3.22"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
   }
 }
