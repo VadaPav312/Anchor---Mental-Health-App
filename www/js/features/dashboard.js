@@ -531,7 +531,11 @@
     card.appendChild(UI.el('div', { class: 'row', style: { gap: 'var(--s2)', alignItems: 'center', marginTop: 'var(--s3)' } }, [UI.thinking(), UI.el('span', { class: 'small soft' }, t('brief.generating'))]));
     if (UI.startHum) UI.startHum();   // faint haptic "hum" while the AI thinks
     try {
-      const data = await LLM.json(briefingPrompt(briefingContext()), { lang: Store.get('settings.lang'), temperature: 0.6 });
+      // Ground the briefing in the Synthesis engine's computed state model, so
+      // the morning read reflects real trends/strain/levers, not raw snapshots.
+      let stateBriefing = '';
+      try { if (window.Synthesis && Synthesis.briefing) stateBriefing = Synthesis.briefing({ maxLen: 3600 }); } catch (e) { stateBriefing = ''; }
+      const data = await LLM.json(briefingPrompt(briefingContext()), { lang: Store.get('settings.lang'), temperature: 0.6, systemExtra: stateBriefing || undefined });
       Store.set('session.briefing', { date: Store.today(), data });
       paintBriefing(card, data);
     } catch (e) {

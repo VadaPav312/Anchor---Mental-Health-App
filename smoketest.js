@@ -86,6 +86,41 @@ setTimeout(() => {
       out.push('pattern insights: ' + w.Store.insights.count() + (top ? ' | top: "' + top.text.slice(0, 80) + '..."' : ' | none'));
     }
 
+    // Synthesis engine: compute the state model and the LLM briefing from the
+    // same seeded data, and assert it produces a real, grounded payload.
+    if (w.Synthesis) {
+      try {
+        const model = w.Synthesis.compute();
+        const brief = w.Synthesis.briefing({ maxLen: 2400 });
+        out.push('synthesis: ok=' + model.ok + ' days=' + model.days +
+          ' load=' + (model.allostaticLoad && model.allostaticLoad.ok ? model.allostaticLoad.score : 'n/a') +
+          ' levers=' + (model.levers ? model.levers.length : 0) +
+          ' briefingChars=' + (brief ? brief.length : 0));
+        out.push('synthesis headline: "' + (w.Synthesis.headline() || '—') + '"');
+        if (model.ok && !brief) errors.push('SYNTHESIS: model.ok but empty briefing');
+        // Deep layer (synthlab): confirm the advanced suite runs end-to-end.
+        const dp = model.deep || {};
+        out.push('deep: kalman=' + (dp.kalman && dp.kalman.ok ? ('v=' + dp.kalman.velocity.toFixed(3)) : 'n/a') +
+          ' changePoint=' + (dp.changePoint && dp.changePoint.ok ? (dp.changePoint.found ? dp.changePoint.direction + '@' + dp.changePoint.daysAgo + 'd' : 'none') : 'n/a') +
+          ' CSD=' + (dp.csd && dp.csd.ok ? dp.csd.destabilization.toFixed(2) : 'n/a') +
+          ' network=' + (dp.network && dp.network.ok ? ('hub:' + dp.network.central.label) : 'n/a') +
+          ' anomaly=' + (dp.anomaly && dp.anomaly.ok ? (dp.anomaly.outlier ? 'yes' : 'no') : 'n/a') +
+          ' entropy=' + (dp.entropy && dp.entropy.ok && dp.entropy.entropy != null ? dp.entropy.entropy.toFixed(2) : 'n/a') +
+          ' period=' + (dp.periodicity && dp.periodicity.ok ? (dp.periodicity.significant ? dp.periodicity.period + 'd' : 'ns') : 'n/a'));
+        // Direct unit checks on SynthLab math (deterministic inputs).
+        if (w.SynthLab) {
+          const I = w.SynthLab.inv([[2, 0], [0, 4]]);
+          if (!I || Math.abs(I[0][0] - 0.5) > 1e-9 || Math.abs(I[1][1] - 0.25) > 1e-9) errors.push('SYNTHLAB: matrix inverse wrong');
+          const tau = w.SynthLab.kendallTau([1, 2, 3, 4, 5]);
+          if (Math.abs(tau - 1) > 1e-9) errors.push('SYNTHLAB: kendallTau monotonic should be 1, got ' + tau);
+        } else {
+          errors.push('SYNTHLAB: window.SynthLab not defined');
+        }
+      } catch (e) { errors.push('SYNTHESIS: ' + (e.stack || e.message)); }
+    } else {
+      errors.push('SYNTHESIS: window.Synthesis not defined');
+    }
+
     // Render EVERY view into the #view container; capture per-view failures.
     const view = w.document.getElementById('view');
     const perView = [];

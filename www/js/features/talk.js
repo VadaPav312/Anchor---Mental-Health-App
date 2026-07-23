@@ -237,10 +237,17 @@
     const wx = (window.Store && Store.derive && Store.derive.todayWeather && Store.derive.todayWeather());
     const name = (Store.profile && Store.profile.name && Store.profile.name()) || '';
     const values = (window.Store && Store.values && Store.values.all) ? Store.values.all().map(v => v && v.name).filter(Boolean) : [];
+    // The on-device Synthesis engine turns the user's raw streams into a
+    // computed state model (trends, volatility, cumulative strain, evidence-
+    // ranked levers). Injecting it here is what lets Anchor's replies be
+    // grounded in who this person actually is right now, not generic.
+    let stateBriefing = '';
+    try { if (window.Synthesis && Synthesis.briefing) stateBriefing = Synthesis.briefing({ maxLen: 3600 }); } catch (e) { stateBriefing = ''; }
     const extra = t('talk.system')
       + (name && name !== 'friend' ? ('\n\nThe person\'s name is ' + name + '.') : '')
       + (values.length ? ('\n\nThe values they chose to steer their life by are: ' + values.join(', ') + '. Keep these gently in mind — when it fits naturally, help them move toward what they value, but never force it or lecture.') : '')
-      + (wx ? ('\n\nTheir logged inner-weather today reads "' + wx + '" — only reference it if relevant.') : '');
+      + (wx ? ('\n\nTheir logged inner-weather today reads "' + wx + '" — only reference it if relevant.') : '')
+      + (stateBriefing ? ('\n\n' + stateBriefing) : '');
 
     try {
       const reply = (await LLM.chat(history, { systemExtra: extra, temperature: 0.75, lang: Store.get('settings.lang') })) || '';
