@@ -23,6 +23,7 @@
     { id: 'decompress',  t: 'tour.decompress_t',  d: 'tour.decompress_d'  },
     { id: 'patterns',    t: 'tour.patterns_t',    d: 'tour.patterns_d'    },
     { id: 'journal',     t: 'tour.journal_t',     d: 'tour.journal_d'     },
+    { id: 'talk',        t: 'tour.talk_t',        d: 'tour.talk_d'        },
     { id: 'mirror',      t: 'tour.mirror_t',      d: 'tour.mirror_d'      },
     { id: 'sleep',       t: 'tour.sleep_t',       d: 'tour.sleep_d'       },
     { id: 'energy',      t: 'tour.energy_t',      d: 'tour.energy_d'      },
@@ -38,7 +39,7 @@
 
   const FALLBACK_ICONS = {
     home: 'home', weather: 'weather', checkin: 'checkin', patterns: 'patterns',
-    journal: 'journal', mirror: 'mirror', sleep: 'sleep', energy: 'energy', calm: 'leaf',
+    journal: 'journal', talk: 'spark', mirror: 'mirror', sleep: 'sleep', energy: 'energy', calm: 'leaf',
     toolkit: 'leaf', sounds: 'sound', decompress: 'decompress',
     experiments: 'lab', values: 'compass', journey: 'trend', hub: 'grid',
   };

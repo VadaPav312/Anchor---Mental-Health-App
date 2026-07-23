@@ -109,7 +109,9 @@
   // Entry detail sheet
   // -------------------------------------------------------------------------
   function openEntryDetail(entry) {
-    const liveTranslate = Store.get('settings.liveTranslate', false);
+    // Offer to translate an entry only when the app is in a non-English language
+    // (the "translate AI replies" setting was removed — translation is automatic).
+    const liveTranslate = (window.I18N && I18N.lang && I18N.lang !== 'en');
     const sentiment = entry.sentiment || {};
     const themes = Array.isArray(entry.themes) ? entry.themes : [];
     const score = sentiment.score != null ? sentiment.score : null;

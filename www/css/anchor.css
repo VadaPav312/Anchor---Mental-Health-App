@@ -55,8 +55,10 @@ body[data-weather="sun"]   .ambient { filter: hue-rotate(-18deg) saturate(1.2) b
 .view-pad { padding-bottom: var(--s8); }
 .page { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--s4); }
 .page-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: var(--s3) var(--s1) var(--s1); }
-.page-title { font-size: 1.7rem; font-weight: 700; letter-spacing: -0.03em; }
-.page-sub { color: var(--ink-faint); font-size: 0.92rem; line-height: 1.4; }
+/* Page titles + their little descriptions stay centered everywhere — even the
+   few sub-screen titles that render outside a .page-head wrapper. */
+.page-title { font-size: 1.7rem; font-weight: 700; letter-spacing: -0.03em; text-align: center; }
+.page-sub { color: var(--ink-faint); font-size: 0.92rem; line-height: 1.4; text-align: center; }
 .eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-ghost); font-weight: 600; }
 
 /* ---- tabbar (floating glass dock) ---- */

@@ -109,6 +109,7 @@
   // bar (⋯); the long tail (Values, Experiments, Grounding, Timeline, Review)
   // lives inside "You". Keeping this short means every item gets a clear label.
   const BLOOM = [
+    ['talk', 'nav.talk'],
     ['journal', 'nav.journal'],
     ['sleep', 'nav.sleep'],
     ['energy', 'nav.energy'],
@@ -170,10 +171,12 @@
     const bloom = UI.el('div', { class: 'navbloom' });
     // fan items across an upper arc, centered on straight-up (90°). Wider gaps +
     // smaller boxes so adjacent labels/icons never overlap.
-    const span = Math.min(156, 40 + N * 22);   // ≤156° so side items stay on-screen
+    const span = Math.min(150, 44 + N * 20);   // ≤150° so side items stay on-screen
     const a0 = 90 + span / 2, a1 = 90 - span / 2;
     const stepRad = (span / Math.max(N - 1, 1)) * Math.PI / 360;
-    const R = Math.max(118, Math.min(144, Math.round(86 / (2 * Math.sin(stepRad || 0.3)))));
+    // Bigger radius so a fuller ring (now incl. the Talk chatbot) never crowds —
+    // adjacent icons/labels keep clear air between them.
+    const R = Math.max(122, Math.min(152, Math.round(92 / (2 * Math.sin(stepRad || 0.3)))));
     items.forEach((v, i) => {
       const ang = (N === 1 ? 90 : a0 + (a1 - a0) * (i / (N - 1))) * Math.PI / 180;
       const bx = Math.cos(ang) * R, by = -Math.sin(ang) * R;

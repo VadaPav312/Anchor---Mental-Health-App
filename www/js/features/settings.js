@@ -135,11 +135,8 @@
       return grid;
     }
 
-    // Live translate toggle
-    const settings2 = Store.settings.get();
-    const liveTransToggle = UI.switchToggle(!!settings2.liveTranslate, function (val) {
-      Store.settings.update({ liveTranslate: val });
-    });
+    // (Removed the "translate AI replies to my language" toggle — the AI now
+    // always answers in the chosen app language automatically; see i18n.modelLangLine.)
 
     // AI translation completion — fills any missing UI strings in the current
     // language (and powers the AI-only languages), on-device.
@@ -173,10 +170,6 @@
         UI.el('div', { class: 'small soft', style: { marginBottom: '4px' } }, t('set.languageSub')),
         buildPicker(),
         aiCompleteRow(),
-        divider(),
-        UI.el('div', { style: { padding: '4px 0' } }, [
-          rowItem(t('set.liveTranslate'), liveTransToggle, null),
-        ]),
       ]),
     ];
   }
@@ -619,7 +612,7 @@
     return [
       sectionHead('set.about'),
       glassSection([
-        aboutRow(t('set.version'), UI.el('div', { class: 'small soft' }, '1.2.0 (3)'), null),
+        aboutRow(t('set.version'), UI.el('div', { class: 'small soft' }, '1.2.6 (4)'), null),
         aboutRow(t('set.care'), supportBtn, null),
         aboutRow(t('set.privacy'), null, t('set.privacyText')),
         aboutRow(t('set.signOutData'), resetOnbBtn, null),
@@ -764,17 +757,43 @@
   }
   function locationSection() {
     if (!window.Weather) return [];
-    const w = Weather.get();
-    const denied = !w || w.denied;
-    return [
-      sectionHead('set.location'),
-      weatherScene(),
-      glassSection([
-        UI.el('div', { style: { padding: '12px 16px 12px' } }, [
-          UI.btn(denied ? t('outside.enable') : t('set.locationRefresh'), { class: 'btn-ghost btn-sm', icon: 'globe', onClick: async () => { await Weather.requestLocation(); if (Weather.refresh) Weather.refresh(); UI.haptic('light'); Anchor.refresh(); } }),
-        ]),
-      ]),
-    ];
+    // Render into a container we can repaint IN PLACE. Previously the button
+    // called Anchor.refresh(), which re-rendered the whole Settings page and
+    // snapped it back to the top — so a denied/slow location read just looked
+    // like "it scrolled up and did nothing". Now we update only this section
+    // and always surface the outcome as a toast.
+    const container = UI.el('div', { class: 'col gap0' });
+
+    function paint() {
+      UI.clear(container);
+      const w = Weather.get();
+      const denied = !w || w.denied;
+      const btn = UI.el('button', {
+        class: 'btn btn-ghost btn-sm', type: 'button',
+        onclick: async (e) => {
+          e.preventDefault();
+          if (btn.disabled) return;
+          btn.disabled = true;
+          btn.textContent = t('set.locating');
+          UI.haptic('light');
+          let res = null;
+          try { res = await Weather.requestLocation(); } catch (_) {}
+          if (!res || res.denied) UI.toast(t('outside.denied'), 'bad');
+          else UI.toast(t('app.updated'), 'good');
+          paint();   // repaint this section only — no page-level scroll jump
+        },
+      }, [
+        UI.frag(`<span style="display:inline-flex;width:18px;height:18px">${Icons.get('globe')}</span>`),
+        denied ? t('outside.enable') : t('set.locationRefresh'),
+      ]);
+      container.appendChild(weatherScene());
+      container.appendChild(glassSection([
+        UI.el('div', { style: { padding: '12px 16px 12px' } }, [btn]),
+      ]));
+    }
+
+    paint();
+    return [sectionHead('set.location'), container];
   }
 
   function render(root) {

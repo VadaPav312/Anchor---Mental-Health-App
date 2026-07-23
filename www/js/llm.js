@@ -146,6 +146,23 @@ Core stance:
 
   function langLine(lang) { return I18N.modelLangLine(lang); }
 
+  // Ground the model in the user's ACTUAL local date & time, so it never assumes
+  // it's morning when it's the middle of the night (and can greet/reference the
+  // time of day correctly). Built on-device from the user's own clock.
+  function nowLine() {
+    try {
+      const d = new Date();
+      const stamp = d.toLocaleString(undefined, {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        hour: 'numeric', minute: '2-digit',
+      });
+      const h = d.getHours();
+      const part = h < 5 ? 'the middle of the night' : h < 12 ? 'morning'
+        : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'night';
+      return `\n\nThe user's current local date and time is ${stamp} — it is ${part} for them right now. Ground any time-of-day reference in this; never assume it is morning.`;
+    } catch { return ''; }
+  }
+
   function parseJson(text) {
     let s = (text || '').trim();
     if (s.startsWith('```')) s = s.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
@@ -163,19 +180,19 @@ Core stance:
 
     async chat(messages, opts) {
       opts = opts || {};
-      const sys = { role: 'system', content: SYSTEM + (opts.systemExtra ? '\n\n' + opts.systemExtra : '') + langLine(opts.lang || Store.get('settings.lang')) };
+      const sys = { role: 'system', content: SYSTEM + (opts.systemExtra ? '\n\n' + opts.systemExtra : '') + nowLine() + langLine(opts.lang || Store.get('settings.lang')) };
       return callRaw([sys, ...messages], { temperature: opts.temperature, json: false });
     },
 
     async ask(prompt, opts) {
       opts = opts || {};
-      const sys = { role: 'system', content: SYSTEM + (opts.systemExtra ? '\n\n' + opts.systemExtra : '') };
+      const sys = { role: 'system', content: SYSTEM + (opts.systemExtra ? '\n\n' + opts.systemExtra : '') + nowLine() };
       return callRaw([sys, { role: 'user', content: prompt + langLine(opts.lang || Store.get('settings.lang')) }], { temperature: opts.temperature == null ? 0.7 : opts.temperature, json: false });
     },
 
     async json(prompt, opts) {
       opts = opts || {};
-      const sys = { role: 'system', content: SYSTEM + (opts.systemExtra ? '\n\n' + opts.systemExtra : '') };
+      const sys = { role: 'system', content: SYSTEM + (opts.systemExtra ? '\n\n' + opts.systemExtra : '') + nowLine() };
       const out = await callRaw([sys, { role: 'user', content: prompt + langLine(opts.lang || Store.get('settings.lang')) }], { temperature: opts.temperature == null ? 0.5 : opts.temperature, json: true });
       return parseJson(out);
     },

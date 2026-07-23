@@ -95,13 +95,17 @@
   // A calm box-breathing animation: inhale 4 / hold 4 / exhale 4 / hold 4.
   function breathing() {
     const orb = UI.el('div', { class: 'breath-orb', style: {
-      width: '160px', height: '160px', borderRadius: '50%', margin: '20px auto',
+      width: '150px', height: '150px', borderRadius: '50%', margin: '18px auto',
       background: 'radial-gradient(circle at 40% 35%, var(--a3), var(--a1) 70%)',
       boxShadow: '0 0 60px -6px var(--a1)', transition: 'transform 4s var(--ease-in-out)',
+      // start at a calm medium size (never so large it covers the button below)
+      transform: 'scale(1)',
     } });
     const phase = UI.el('div', { class: 'b big tac', style: { minHeight: '32px' } }, t('care.breathe'));
     const sub = UI.el('div', { class: 'small muted tac' }, '');
-    const steps = [['Breathe in', 1.35], ['Hold', 1.35], ['Breathe out', 0.7], ['Hold', 0.7]];
+    // Begin at the medium resting size, breathe in (gently grow) then out.
+    // The peak is kept modest so the orb can't overlap the Done button.
+    const steps = [['Breathe in', 1.12], ['Hold', 1.12], ['Breathe out', 0.74], ['Hold', 0.74]];
     let i = 0, timer = null;
     function run() {
       const [label, scale] = steps[i % 4];
