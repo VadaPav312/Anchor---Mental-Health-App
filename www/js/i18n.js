@@ -89,6 +89,30 @@
     return meta[nav] ? nav : 'en';
   }
 
+  // A shipped language has its own lang/<code>.js file (the non-"ai" entries).
+  // The "ai" languages have no file — they build on the English fallback plus
+  // any on-device AI translations. English is always loaded up front.
+  function hasFile(code) { return !!meta[code] && !meta[code].ai; }
+
+  // Lazily fetch a shipped language file only when it's actually needed, instead
+  // of loading all ~20 on every boot. Each file self-registers via I18N.register.
+  // Multiple callers for the same code share one network request.
+  const loadingLang = {};
+  function ensureLang(code, cb) {
+    if (!hasFile(code) || code === 'en' || dicts[code]) { if (cb) cb(); return; }
+    if (loadingLang[code]) { loadingLang[code].push(cb); return; }
+    loadingLang[code] = [cb];
+    const done = () => {
+      const cbs = loadingLang[code] || []; delete loadingLang[code];
+      cbs.forEach(f => { try { if (f) f(); } catch (e) { console.warn(e); } });
+    };
+    const s = document.createElement('script');
+    s.src = 'js/lang/' + code + '.js'; s.async = true;
+    s.onload = done;
+    s.onerror = () => { console.warn('lang load failed: ' + code); done(); };   // fall back to English
+    (document.head || document.documentElement).appendChild(s);
+  }
+
   const I18N = {
     LANGUAGES,
     get lang() { return current; },
@@ -143,6 +167,8 @@
       return out;
     },
 
+    ensureLang,
+
     setLang(code) {
       if (!meta[code]) code = 'en';
       current = code;
@@ -151,7 +177,12 @@
       document.documentElement.lang = code;
       document.documentElement.dir = I18N.dir;
       document.body && document.body.setAttribute('dir', I18N.dir);
-      listeners.forEach(fn => { try { fn(code); } catch (e) { console.warn(e); } });
+      const fire = () => listeners.forEach(fn => { try { fn(code); } catch (e) { console.warn(e); } });
+      // Render now with whatever's loaded (English fallback if the file hasn't
+      // arrived yet), then re-render the moment the real translations land. For
+      // English and already-loaded languages this fires exactly once.
+      fire();
+      if (hasFile(code) && !dicts[code]) ensureLang(code, () => { if (current === code) fire(); });
     },
 
     // Look up a key; fall back to English; finally show the key itself so a

@@ -7,10 +7,10 @@ const { JSDOM } = require('jsdom');
 
 const html = fs.readFileSync(path.join(__dirname, 'www/index.html'), 'utf8');
 
-// Pull the script srcs in load order from index.html.
-const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m => m[1]);
+// Pull the script srcs in load order from index.html (scripts carry `defer`).
+const scripts = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"[^>]*><\/script>/g)].map(m => m[1]);
 
-const dom = new JSDOM(html.replace(/<script src="[^"]+"><\/script>/g, ''), {
+const dom = new JSDOM(html.replace(/<script\b[^>]*\bsrc="[^"]+"[^>]*><\/script>/g, ''), {
   runScripts: 'outside-only',
   pretendToBeVisual: true,
   url: 'http://localhost/',
@@ -41,6 +41,16 @@ for (const src of scripts) {
   const code = fs.readFileSync(file, 'utf8');
   try { vm.runInContext(code, ctx, { filename: src }); }
   catch (e) { errors.push('LOAD ' + src + ': ' + (e.stack || e.message)); }
+}
+
+// Language files (except English) are now lazy-loaded in the browser via
+// i18n.ensureLang, which injects a <script> jsdom won't execute. Load them all
+// directly here so the multi-language render checks below still have real dicts.
+const langDir = path.join(__dirname, 'www/js/lang');
+for (const f of fs.readdirSync(langDir)) {
+  if (!f.endsWith('.js') || f === 'en.js') continue;   // en.js already ran via index.html
+  try { vm.runInContext(fs.readFileSync(path.join(langDir, f), 'utf8'), ctx, { filename: 'lang/' + f }); }
+  catch (e) { errors.push('LOAD lang/' + f + ': ' + (e.stack || e.message)); }
 }
 
 // Let DOMContentLoaded-driven boot run.
