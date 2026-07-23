@@ -33,11 +33,12 @@ window.CONFIG = {
   // → the Web app → "SDK setup and configuration" → Config. See CLOUD_SYNC.md
   // for the full one-time setup (enable Google sign-in + Firestore + rules).
   firebaseConfig: {
-    apiKey: '',              // e.g. 'AIzaSy...'
-    authDomain: '',          // e.g. 'your-project.firebaseapp.com'
-    projectId: '',           // e.g. 'your-project'
-    storageBucket: '',       // e.g. 'your-project.appspot.com'
-    messagingSenderId: '',   // e.g. '627695329462'
-    appId: '',               // e.g. '1:627695329462:web:abc123'
+    apiKey: "AIzaSyAHN76yNHapBYAZYY3gz-31Y79-TmMb81g",
+    authDomain: "milpitas-hacks-f628f.firebaseapp.com",
+    projectId: "milpitas-hacks-f628f",
+    storageBucket: "milpitas-hacks-f628f.firebasestorage.app",
+    messagingSenderId: "627695329462",
+    appId: "1:627695329462:web:5b32ccf8a6eb9b556d0617",
+    measurementId: "G-5DTBMH3S6R"
   },
 };
