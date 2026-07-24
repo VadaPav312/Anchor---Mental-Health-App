@@ -26,7 +26,11 @@
        matching the iOS splash. Fades out the moment the app paints (app.js),
        with a hard CSS fallback so it can never linger. -->
   <div id="app-loader" aria-hidden="true">
-    <img src="assets/logo.png" alt="Anchor" class="app-loader-logo" width="112" height="112" />
+    <!-- logo.png is 1024×1024; the inline style constrains it to 112px ATOMICALLY
+         (applied with the element itself, beating any late stylesheet), so the
+         webview can never flash the full-size image for a frame while loading. -->
+    <img src="assets/logo.png" alt="Anchor" class="app-loader-logo" width="112" height="112" decoding="async"
+      style="width:112px;height:112px;max-width:112px;max-height:112px;object-fit:contain;border-radius:26px" />
     <div class="app-loader-name">Anchor</div>
   </div>
   <style>

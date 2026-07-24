@@ -173,17 +173,18 @@
     // LARGEST radius the viewport allows so the ring opens up and no label ever
     // sits on top of a neighbouring icon. The outermost items are kept fully
     // on-screen horizontally, and the top item kept off the ceiling.
-    const span = Math.min(168, 52 + N * 16);          // degrees of the fan
+    const span = Math.min(156, 50 + N * 15);          // degrees of the fan
     const a0 = 90 + span / 2, a1 = 90 - span / 2;     // start/end angles
-    const minAngleRad = a1 * Math.PI / 180;           // the most horizontal item
+    const halfSpanRad = (span / 2) * Math.PI / 180;   // half-angle of the fan
     const vw = Math.min(window.innerWidth || 390, 560);
     const vh = window.innerHeight || 760;
-    // radius that keeps side items on-screen (label half-width ≈ 40 + margin)
-    const rByWidth = (vw / 2 - 44) / Math.max(Math.cos(minAngleRad), 0.05);
-    const rByHeight = vh - 200;                        // keep the top item visible
-    // A bit more open than before so the items get clearer space between them
-    // (floor bumped 158→176, cap 250→288); grows further on roomier screens.
-    const R = Math.round(Math.max(176, Math.min(rByWidth, rByHeight, 288)));
+    // Cap the radius so the OUTERMOST item stays fully on-screen with clear air
+    // at the edges: its centre reaches R·sin(halfSpan) horizontally, plus ~half
+    // an item (~34px) and a 12px margin. The width budget governs on phones (a
+    // small floor only guards against an absurdly tight ring on wide screens).
+    const rByWidth = (vw / 2 - 46) / Math.max(Math.sin(halfSpanRad), 0.05);
+    const rByHeight = vh - 210;                        // keep the top item visible
+    const R = Math.round(Math.max(146, Math.min(rByWidth, rByHeight, 246)));
     items.forEach((v, i) => {
       const ang = (N === 1 ? 90 : a0 + (a1 - a0) * (i / (N - 1))) * Math.PI / 180;
       const bx = Math.cos(ang) * R, by = -Math.sin(ang) * R;

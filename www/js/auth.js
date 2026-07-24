@@ -166,7 +166,9 @@
       E('button', { class: 'btn btn-ghost btn-block', style: { marginTop: '10px' }, onclick: () => render('signin') }, t('auth.switchToSignIn')),
       E('p', { class: 'tiny muted tac', style: { marginTop: '14px', lineHeight: '1.5' } }, t('auth.onDevice')),
     ]);
-    setTimeout(() => name.focus(), 250);
+    // Deliberately NOT auto-focusing the first field: on iPhone that pops the
+    // keyboard up over the page. Let the user take in the whole screen and tap
+    // whatever they want (name field, Google, or switch to sign-in).
   }
 
   // ---- sign in (returning) ----
@@ -226,7 +228,9 @@
       E('button', { class: 'btn btn-ghost btn-block', style: { marginTop: '10px' }, onclick: () => render('signup') }, t('auth.switchToSignUp')),
       E('p', { class: 'tiny muted tac', style: { marginTop: '14px' } }, '🔒 ' + t('auth.onDevice')),
     ]);
-    if (hasPw) { setTimeout(() => pin.focus(), 250); pin.addEventListener('keydown', (e) => { if (e.key === 'Enter') attempt(); }); refreshLock(); }
+    // No auto-focus (see renderSignUp): don't force the keyboard up on entry.
+    // Enter still submits once the user chooses to tap the field and type.
+    if (hasPw) { pin.addEventListener('keydown', (e) => { if (e.key === 'Enter') attempt(); }); refreshLock(); }
   }
 
   function render(mode) { if (mode === 'signin') renderSignIn(); else renderSignUp(); }
