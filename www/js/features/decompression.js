@@ -511,10 +511,15 @@
   function buildSummaryCard(summary, state) {
     const buckets = state._savedBuckets || { act: [], release: [], feel: [] };
 
+    // Stream the summary in the first time it arrives (like the chat); on any
+    // later rerender of this screen show it instantly so it doesn't re-animate.
+    const summaryTextEl = UI.el('div', { class: 'soft small', style: { lineHeight: '1.65' } });
+    if (state.aiJustArrived) { state.aiJustArrived = false; UI.reveal(summaryTextEl, summary.summary); }
+    else summaryTextEl.textContent = summary.summary;
     const children = [
       // Title + summary text
       UI.el('div', { class: 'eyebrow mb1' }, t('dec.summaryTitle')),
-      UI.el('div', { class: 'soft small', style: { lineHeight: '1.65' } }, summary.summary),
+      summaryTextEl,
     ];
 
     // Mood read phrase
@@ -795,6 +800,7 @@
           valence:  (typeof result.valence  === 'number')                    ? result.valence  : 0,
           feedback: (typeof result.feedback === 'string' && result.feedback) ? result.feedback : t('dec.sleepWell'),
         };
+        state.aiJustArrived = true;   // reveal the summary once, gently, on arrival
         recordWindDownMood(state.aiSummary.valence);
         rerender();
       })

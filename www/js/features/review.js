@@ -450,9 +450,9 @@
           const prompt = buildNarrativePrompt(keys, stats);
           const lang = Store.get('settings.lang');
           const text = await LLM.ask(prompt, { lang });
-          narrativeBody.textContent = text || fallbackNarrative(keys, stats);
+          UI.reveal(narrativeBody, text || fallbackNarrative(keys, stats));
         } catch (e) {
-          narrativeBody.textContent = fallbackNarrative(keys, stats);
+          UI.reveal(narrativeBody, fallbackNarrative(keys, stats));
         }
       })();
 

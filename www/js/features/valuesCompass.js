@@ -505,13 +505,15 @@
         try {
           const reply = await LLM.ask(prompt, { temperature: 0.7 });
           UI.clear(resultCard);
+          const replyEl = UI.el('div', { class: 'small', style: { lineHeight: '1.7' } });
           resultCard.appendChild(UI.el('div', { class: 'glass-card card col gap2' }, [
             UI.el('div', { class: 'row gap2', style: { alignItems: 'center', marginBottom: '6px' } }, [
               UI.frag(`<span style="width:18px;height:18px;color:var(--a1);display:inline-flex">${Icons.get('compass')}</span>`),
               UI.el('div', { class: 'eyebrow' }, t('val.compassCheck')),
             ]),
-            UI.el('div', { class: 'small', style: { lineHeight: '1.7' } }, reply),
+            replyEl,
           ]));
+          UI.reveal(replyEl, reply);   // stream the reflection in, like the chat
         } catch (err) {
           UI.clear(resultCard);
           resultCard.appendChild(UI.el('div', { class: 'glass-card card small soft', style: { lineHeight: '1.6' } }, t('app.offline')));
@@ -557,7 +559,7 @@
       try {
         const reply = await LLM.ask(prompt(), { temperature: 0.85 });
         Store.set(cacheKey, { date: today(), value: v.name, text: reply });
-        paintIdea(reply);
+        paintIdea(reply, true);
       } catch (e) { paintIdle(); UI.toast(t('app.offline'), 'bad'); }
       finally { if (UI.stopHum) UI.stopHum(); }
     }
@@ -567,13 +569,15 @@
         'Suggest ONE small, concrete, ~10-minute thing they could actually do TODAY to live this value. ' +
         'One warm sentence, specific and doable, written as a gentle invitation. No preamble, no quotes.';
     }
-    function paintIdea(text) {
+    function paintIdea(text, animate) {
       UI.clear(card);
       card.appendChild(UI.el('div', { class: 'row between', style: { alignItems: 'center' } }, [
         UI.el('div', { class: 'eyebrow' }, t('val.nudgeFor', { value: v.name })),
         UI.frag('<span style="width:18px;height:18px;display:inline-flex;color:var(--a1)">' + Icons.get('compass') + '</span>'),
       ]));
-      card.appendChild(UI.el('div', { style: { marginTop: 'var(--s2)', lineHeight: '1.6' } }, text));
+      const ideaEl = UI.el('div', { style: { marginTop: 'var(--s2)', lineHeight: '1.6' } });
+      card.appendChild(ideaEl);
+      if (animate) UI.reveal(ideaEl, text); else ideaEl.textContent = text;
       const row = UI.el('div', { class: 'row', style: { gap: 'var(--s2)', marginTop: 'var(--s3)', alignItems: 'center' } }, [
         UI.el('button', { class: 'btn btn-ghost btn-sm', onclick: gen }, t('val.nudgeAnother')),
       ]);

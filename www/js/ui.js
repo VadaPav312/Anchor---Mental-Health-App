@@ -47,6 +47,44 @@
   function clear(node) { while (node && node.firstChild) node.removeChild(node.firstChild); return node; }
   function mount(container, node) { clear(container); append(container, node); return container; }
 
+  // ---- AI text reveal -----------------------------------------------------
+  // Gradually reveals text word-by-word with a soft blur-fade — the same gentle
+  // "streaming" effect the chat uses. Use this ANYWHERE the app shows freshly
+  // generated AI text, so every AI surface feels alive and consistent. Reuses
+  // the .talk-word CSS. Honours prefers-reduced-motion (renders instantly).
+  // Returns a canceller that finalises the text immediately.
+  //   UI.reveal(el, text, { onDone, onTick, speed, delay })
+  function reveal(node, text, opts) {
+    opts = opts || {};
+    const full = String(text == null ? '' : text).replace(/\s+$/,'').replace(/^\s+/,'');
+    clear(node);
+    let reduce = false;
+    try { reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); } catch {}
+    if (!full) { if (opts.onDone) opts.onDone(); return function () {}; }
+    if (reduce) { node.textContent = full; if (opts.onDone) opts.onDone(); return function () {}; }
+    const tokens = full.split(/(\s+)/);          // keep whitespace tokens
+    const timers = [];
+    let i = 0, done = false;
+    const speed = opts.speed || 1;
+    const finish = () => { if (done) return; done = true; timers.forEach(clearTimeout); node.textContent = full; if (opts.onDone) opts.onDone(); };
+    const step = () => {
+      if (done) return;
+      if (i >= tokens.length) { done = true; if (opts.onDone) opts.onDone(); return; }
+      const tok = tokens[i]; i++;
+      if (/^\s+$/.test(tok)) { node.appendChild(document.createTextNode(tok)); step(); return; }
+      const span = document.createElement('span');
+      span.className = 'talk-word';
+      span.textContent = tok;
+      node.appendChild(span);
+      requestAnimationFrame(() => span.classList.add('in'));
+      if (opts.onTick) { try { opts.onTick(); } catch {} }
+      const d = Math.min(95, 32 + tok.length * 4) * speed;
+      timers.push(setTimeout(step, d));
+    };
+    timers.push(setTimeout(step, opts.delay || 0));
+    return finish;
+  }
+
   // ---- haptics (Capacitor, with silent web fallback) ----------------------
   function haptic(style) {
     const H = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
@@ -341,7 +379,7 @@
   function weatherName(code) { return t('wx.weather' + (code ? code[0].toUpperCase() + code.slice(1) : 'Cloud')); }
 
   window.UI = {
-    el, frag, clear, mount, append, haptic, hapticSeq, hapticSuccess, hapticTick, hapticCommit, hapticPop, startHum, stopHum, longPress,
+    el, frag, clear, mount, append, reveal, haptic, hapticSeq, hapticSuccess, hapticTick, hapticCommit, hapticPop, startHum, stopHum, longPress,
     toast, sheet, modal, confirm,
     ring, sparkline, bars, segmented, chips, spinner, thinking, empty,
     card, tile, btn, field, row, switchToggle, withLoading, fmt,

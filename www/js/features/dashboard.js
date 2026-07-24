@@ -537,7 +537,7 @@
       try { if (window.Synthesis && Synthesis.briefing) stateBriefing = Synthesis.briefing({ maxLen: 3600 }); } catch (e) { stateBriefing = ''; }
       const data = await LLM.json(briefingPrompt(briefingContext()), { lang: Store.get('settings.lang'), temperature: 0.6, systemExtra: stateBriefing || undefined });
       Store.set('session.briefing', { date: Store.today(), data });
-      paintBriefing(card, data);
+      paintBriefing(card, data, true);   // animate: gently stream the fresh text in
     } catch (e) {
       UI.clear(card);
       card.appendChild(briefHeader());
@@ -545,18 +545,26 @@
     } finally { _briefingInFlight = false; if (UI.stopHum) UI.stopHum(); }
   }
 
-  function paintBriefing(card, data) {
+  function paintBriefing(card, data, animate) {
     UI.clear(card);
     card.appendChild(briefHeader(briefRefreshBtn(card)));
-    card.appendChild(UI.el('p', { class: 'soft', style: { marginTop: 'var(--s3)', lineHeight: '1.6' } }, data.summary || ''));
+    // On a fresh generation we gently stream the text in (like the chat); on a
+    // cached repaint we render it instantly so revisiting home isn't busy.
+    const summaryEl = UI.el('p', { class: 'soft', style: { marginTop: 'var(--s3)', lineHeight: '1.6' } });
+    card.appendChild(summaryEl);
+    if (animate) UI.reveal(summaryEl, data.summary || ''); else summaryEl.textContent = data.summary || '';
     const focus = (data.focus || []).slice(0, 3);
     if (focus.length) {
       card.appendChild(UI.el('div', { class: 'eyebrow', style: { marginTop: 'var(--s4)', marginBottom: 'var(--s2)' } }, t('brief.focus')));
       const list = UI.el('div', { class: 'col', style: { gap: 'var(--s2)' } });
-      focus.forEach(f => list.appendChild(focusRow(String(f))));
+      focus.forEach(f => list.appendChild(focusRow(String(f), animate)));
       card.appendChild(list);
     }
-    if (data.closing) card.appendChild(UI.el('p', { class: 'small soft', style: { marginTop: 'var(--s4)', lineHeight: '1.5', fontStyle: 'italic' } }, data.closing));
+    if (data.closing) {
+      const closeEl = UI.el('p', { class: 'small soft', style: { marginTop: 'var(--s4)', lineHeight: '1.5', fontStyle: 'italic' } });
+      card.appendChild(closeEl);
+      if (animate) UI.reveal(closeEl, data.closing); else closeEl.textContent = data.closing;
+    }
     const footRow = UI.el('div', { class: 'row', style: { alignItems: 'center', gap: 'var(--s2)' } }, [
       UI.el('div', { class: 'tiny muted', style: { flex: '1 1 auto' } }, '✨ ' + t('brief.poweredBy')),
     ]);
@@ -567,14 +575,16 @@
     card.appendChild(UI.el('div', { style: { marginTop: 'var(--s4)', paddingTop: 'var(--s3)', borderTop: '1px solid var(--glass-stroke-soft)' } }, [footRow]));
   }
 
-  function focusRow(text) {
+  function focusRow(text, animate) {
+    const textEl = UI.el('div', { class: 'small', style: { flex: '1 1 auto', lineHeight: '1.4', minWidth: '0' } });
+    if (animate) UI.reveal(textEl, text); else textEl.textContent = text;
     const row = UI.el('button', { class: 'tap', style: {
       display: 'flex', alignItems: 'center', gap: 'var(--s3)', width: '100%', textAlign: 'left',
       padding: '11px 13px', borderRadius: 'var(--r-md)',
       background: 'var(--glass-bg-faint)', border: '1px solid var(--glass-stroke-soft)',
     } }, [
       UI.frag('<span style="width:22px;height:22px;display:inline-flex;flex:0 0 auto;color:var(--a1)">' + Icons.get('target') + '</span>'),
-      UI.el('div', { class: 'small', style: { flex: '1 1 auto', lineHeight: '1.4', minWidth: '0' } }, text),
+      textEl,
       UI.frag('<span style="width:18px;height:18px;display:inline-flex;flex:0 0 auto;color:var(--ink-ghost)">' + Icons.get('check') + '</span>'),
     ]);
     row.onclick = () => { row.style.opacity = '0.5'; row.style.textDecoration = 'line-through'; UI.haptic('success'); UI.toast(t('brief.doneTask'), 'good'); };

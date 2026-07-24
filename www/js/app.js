@@ -179,10 +179,11 @@
     const vw = Math.min(window.innerWidth || 390, 560);
     const vh = window.innerHeight || 760;
     // radius that keeps side items on-screen (label half-width ≈ 40 + margin)
-    const rByWidth = (vw / 2 - 50) / Math.max(Math.cos(minAngleRad), 0.05);
-    const rByHeight = vh - 220;                        // keep the top item visible
-    // Noticeably larger than before (old cap was 152); grows on roomier screens.
-    const R = Math.round(Math.max(158, Math.min(rByWidth, rByHeight, 250)));
+    const rByWidth = (vw / 2 - 44) / Math.max(Math.cos(minAngleRad), 0.05);
+    const rByHeight = vh - 200;                        // keep the top item visible
+    // A bit more open than before so the items get clearer space between them
+    // (floor bumped 158→176, cap 250→288); grows further on roomier screens.
+    const R = Math.round(Math.max(176, Math.min(rByWidth, rByHeight, 288)));
     items.forEach((v, i) => {
       const ang = (N === 1 ? 90 : a0 + (a1 - a0) * (i / (N - 1))) * Math.PI / 180;
       const bx = Math.cos(ang) * R, by = -Math.sin(ang) * R;

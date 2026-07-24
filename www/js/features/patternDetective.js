@@ -448,7 +448,8 @@
             llmSummary: parsed && parsed.summary ? parsed.summary : null,
           });
 
-          statusEl.textContent = parsed && parsed.summary ? parsed.summary : t('pat.watching');
+          if (parsed && parsed.summary) UI.reveal(statusEl, parsed.summary);
+          else statusEl.textContent = t('pat.watching');
           submitBtn.disabled = false;
           input.value = '';
           Anchor.refresh();

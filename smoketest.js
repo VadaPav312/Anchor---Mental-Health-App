@@ -121,6 +121,18 @@ setTimeout(() => {
       errors.push('SYNTHESIS: window.Synthesis not defined');
     }
 
+    // AI text reveal helper: returns a canceller that finalises text at once.
+    if (w.UI && typeof w.UI.reveal === 'function') {
+      const d = w.document.createElement('div');
+      const fin = w.UI.reveal(d, 'hello there friend');
+      if (typeof fin !== 'function') errors.push('UI.reveal: no canceller returned');
+      fin();
+      if (d.textContent !== 'hello there friend') errors.push('UI.reveal: canceller did not finalise text, got "' + d.textContent + '"');
+      out.push('UI.reveal: ok');
+    } else {
+      errors.push('UI.reveal: not defined');
+    }
+
     // Render EVERY view into the #view container; capture per-view failures.
     const view = w.document.getElementById('view');
     const perView = [];

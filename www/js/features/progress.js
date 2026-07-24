@@ -66,7 +66,7 @@
     col.appendChild(aiCard);
     const cacheKey = 'session.progress.' + _period;
     const cache = Store.get(cacheKey, null);
-    if (cache && cache.date === Store.today() && cache.data) paintNarrative(aiCard, cache.data, stats);
+    if (cache && cache.date === Store.today() && cache.data) paintNarrative(aiCard, cache.data, stats, false);
     else if (window.LLM && LLM.configured() && (stats.checkins > 0 || stats.nights > 0)) generate(aiCard, period, stats, cacheKey);
     else paintEmpty(aiCard, stats);
   }
@@ -98,29 +98,35 @@
     try {
       const data = await LLM.json(prompt(period, stats), { lang: Store.get('settings.lang'), temperature: 0.6 });
       Store.set(cacheKey, { date: Store.today(), data });
-      paintNarrative(card, data, stats);
+      paintNarrative(card, data, stats, true);   // stream the fresh narrative in
     } catch (e) {
       UI.clear(card); card.appendChild(header());
       card.appendChild(UI.el('button', { class: 'small', style: { color: 'var(--a1)', marginTop: 'var(--s3)' }, onclick: () => { _inFlight = false; generate(card, period, stats, cacheKey); } }, t('brief.failed')));
     } finally { _inFlight = false; if (UI.stopHum) UI.stopHum(); }
   }
 
-  function paintNarrative(card, data, stats) {
+  function paintNarrative(card, data, stats, animate) {
     UI.clear(card);
     const refresh = UI.el('button', { class: 'icon-btn', style: { width: '34px', height: '34px', fontSize: '1.05rem', lineHeight: '1' }, 'aria-label': t('brief.refresh'),
       onclick: () => { Store.set('session.progress.' + _period, null); Anchor.refresh(); } }, '⟳');
     card.appendChild(header(refresh));
-    card.appendChild(UI.el('p', { class: 'soft', style: { marginTop: 'var(--s3)', lineHeight: '1.6' } }, data.summary || ''));
+    const sumEl = UI.el('p', { class: 'soft', style: { marginTop: 'var(--s3)', lineHeight: '1.6' } });
+    card.appendChild(sumEl);
+    if (animate) UI.reveal(sumEl, data.summary || ''); else sumEl.textContent = data.summary || '';
     if (data.win) {
+      const winEl = UI.el('div', { class: 'small', style: { marginTop: '4px', lineHeight: '1.45' } });
+      if (animate) UI.reveal(winEl, data.win, { delay: 260 }); else winEl.textContent = data.win;
       card.appendChild(UI.el('div', { style: { marginTop: 'var(--s4)', padding: 'var(--s3) var(--s4)', borderRadius: 'var(--r-md)', background: 'rgba(var(--a3-rgb),0.12)', border: '1px solid rgba(var(--a3-rgb),0.28)' } }, [
         UI.el('div', { class: 'tiny b', style: { color: 'var(--good)', textTransform: 'uppercase', letterSpacing: '0.08em' } }, t('prog.win')),
-        UI.el('div', { class: 'small', style: { marginTop: '4px', lineHeight: '1.45' } }, data.win),
+        winEl,
       ]));
     }
     if (data.focus) {
+      const focEl = UI.el('div', { class: 'small', style: { marginTop: '4px', lineHeight: '1.45' } });
+      if (animate) UI.reveal(focEl, data.focus, { delay: 420 }); else focEl.textContent = data.focus;
       card.appendChild(UI.el('div', { style: { marginTop: 'var(--s3)', padding: 'var(--s3) var(--s4)', borderRadius: 'var(--r-md)', background: 'var(--glass-bg-faint)', border: '1px solid var(--glass-stroke-soft)' } }, [
         UI.el('div', { class: 'tiny b', style: { color: 'var(--a1)', textTransform: 'uppercase', letterSpacing: '0.08em' } }, t('prog.focus')),
-        UI.el('div', { class: 'small', style: { marginTop: '4px', lineHeight: '1.45' } }, data.focus),
+        focEl,
       ]));
     }
     const row = UI.el('div', { class: 'row', style: { gap: 'var(--s2)', marginTop: 'var(--s4)', alignItems: 'center' } }, [
